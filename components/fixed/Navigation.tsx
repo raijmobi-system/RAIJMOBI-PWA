@@ -9,7 +9,9 @@ interface NavigationProps {
 
 
 export default function Navigation({ direction = 'column' }: NavigationProps) {
+    
     return (
+        
         <nav className={css({ display: 'flex', flexDirection: direction, gap: '12px',width: '100%',alignItems: 'center',justifyContent: 'center'})}>
             <ul className={css({display: 'flex',flexDirection: direction,width:'100%',alignItems: 'center',justifyContent: 'space-between'})}>
                 <li>
@@ -22,7 +24,7 @@ export default function Navigation({ direction = 'column' }: NavigationProps) {
                 </li>
                 <li>
                     <LinkImage
-                        href="/"
+                        href="/runs/monitoring"
                         Icon={<Icon><DirectionsCar /></Icon>}
                         text='Carros'
                         direction='column'
@@ -30,7 +32,7 @@ export default function Navigation({ direction = 'column' }: NavigationProps) {
                 </li>
                 <li>
                     <LinkImage
-                        href="/"
+                        href="/chat"
                         Icon={<Icon><Chat /></Icon>}
                         text='Chat'
                         direction='column'
@@ -38,7 +40,7 @@ export default function Navigation({ direction = 'column' }: NavigationProps) {
                 </li>
                 <li>
                     <LinkImage
-                        href="/"
+                        href="/profile"
                         Icon={<Icon><Person /></Icon>}
                         text='Perfil'
                         direction='column'

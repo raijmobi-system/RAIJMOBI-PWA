@@ -1,3 +1,5 @@
+"use client"
+
 import React from "react";
 import { css } from "../../styled-system/css"; 
 
@@ -16,7 +18,8 @@ export default function FrameComponent({ titleElements, actions, children }: Fra
         minHeight: '400px',
         height: 'auto',    
         width: '100%',
-        paddingInline: '4',     
+        paddingInline: '5',
+        paddingY: '5'     
       })}
     >
       {/* 1. DIV DO HEADER: titleElements e actions juntos na mesma div/row */}
@@ -27,6 +30,7 @@ export default function FrameComponent({ titleElements, actions, children }: Fra
           alignItems: 'center', // Alinha verticalmente ao centro
           gap: '16px',          // Espaçamento entre os elementos do header
           justifyContent: 'space-between', // Distribui titleElements à esquerda e actions à direita                 
+          
         })} 
         aria-label="decorative"
       >
@@ -40,7 +44,7 @@ export default function FrameComponent({ titleElements, actions, children }: Fra
           display:'flex',
           flexDirection:'column',
           flex: '1',          
-          padding: '16px'     
+          paddingY: '4'     
         })} 
         aria-label="main"
       >

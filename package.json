@@ -3,21 +3,27 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "prepare": "panda codegen"
+    "prepare": "panda codegen",
+    "tauri": "tauri"
   },
   "dependencies": {
     "@material-symbols-svg/react": "^0.9.0",
+    "framer-motion": "^12.40.0",
+    "leaflet": "^1.9.4",
     "next": "16.2.6",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "react-leaflet": "^5.0.0"
   },
   "devDependencies": {
     "@pandacss/dev": "^1.11.1",
     "@tailwindcss/postcss": "^4",
+    "@tauri-apps/cli": "^2.11.3",
+    "@types/leaflet": "^1.9.21",
     "@types/node": "^20.19.41",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19",

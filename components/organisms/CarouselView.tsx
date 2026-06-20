@@ -1,3 +1,6 @@
+"use client"
+
+
 import React, { useRef } from "react";
 import { css } from "../../styled-system/css";
 import FrameComponent from "./FrameComponent";

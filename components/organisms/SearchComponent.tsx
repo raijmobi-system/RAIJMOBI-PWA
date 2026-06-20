@@ -1,3 +1,5 @@
+"use client"
+
 import { ReactNode } from 'react';
 import { Input } from '../atoms/data';
 import { Icon } from '../atoms/presentation';

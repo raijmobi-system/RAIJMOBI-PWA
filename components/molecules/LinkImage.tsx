@@ -1,7 +1,7 @@
 import React from "react";
 import { cva } from '../../styled-system/css';
 import { flex } from '../../styled-system/patterns';
-import { Colorize } from "@material-symbols-svg/react";
+import Link from "next/link";
 
 // 1. Definição do CVA (As regras visuais ficam isoladas aqui fora)
 const linkMoleculeRecipe = cva({
@@ -10,10 +10,7 @@ const linkMoleculeRecipe = cva({
     alignItems: 'center',
     height: '40px',
     borderRadius: '8px',
-    
     backgroundColor: 'transparent', 
-    
-    
     textDecoration: 'none',
     transition: 'all 0.2s ease',
     gap: '2',
@@ -29,7 +26,7 @@ const linkMoleculeRecipe = cva({
         flexDirection: 'column',
         justifyContent: 'center',
         paddingInline: '2',
-        height: 'auto', // Se for coluna com texto, 40px pode ser pouco, deixamos auto ou uma minHeight
+        height: 'auto', 
         minHeight: '40px',
       }
     },
@@ -48,13 +45,13 @@ const linkMoleculeRecipe = cva({
       active: { color: 'gray' },
     }
   },
-  // 3. Comcompound Variants (Regras especiais baseadas na combinação de propriedades)
+  // 3. Compound Variants (Regras especiais baseadas na combinação de propriedades)
   compoundVariants: [
     {
       direction: 'column',
       width: 'fixed-square',
       css: {
-        height: '40px', // Garante o quadrado perfeito se o usuário moscou nas propriedades
+        height: '40px', 
       }
     }
   ],
@@ -86,7 +83,8 @@ export default function LinkMolecule({
   const className = linkMoleculeRecipe({ direction, width });
 
   return (
-    <a href={href} className={className}>
+    // 2. Usando o <Link> do Next.js para navegação otimizada
+    <Link href={href} className={className}>
       {/* Container do Bloco Principal (Ícone + Texto) */}
       <div className={flex({ 
         direction: direction, 
@@ -99,10 +97,10 @@ export default function LinkMolecule({
         {text && <span className="text-sm font-medium text-gray-700 truncate">{text}</span>}
       </div>
 
-      {/* Elemento Extra (Só faz sentido visual se não for um quadrado fixo de 40x40) */}
+      {/* Elemento Extra */}
       {extraElement && width !== 'fixed-square' && (
         <span className={flex({ shrink: 0 })}>{extraElement}</span>
       )}
-    </a>
+    </Link>
   );
 }

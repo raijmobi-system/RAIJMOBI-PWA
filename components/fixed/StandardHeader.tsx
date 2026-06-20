@@ -16,7 +16,7 @@ export default function StandardHeader() {
                     </Text>
                   </Flex>
                   <Link>
-                    <Avatar src="cliente.jpeg" size="fx" />
+                    <Avatar src="/cliente.jpeg" size="fx" />
                   </Link>
         
                 </header>
