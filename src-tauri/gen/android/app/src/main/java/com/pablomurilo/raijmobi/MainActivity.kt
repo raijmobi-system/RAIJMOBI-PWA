@@ -1,4 +1,4 @@
-package com.tauri.dev
+package com.pablomurilo.raijmobi
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge

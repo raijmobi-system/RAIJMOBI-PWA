@@ -2,10 +2,10 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "raijmobi-app",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.pablomurilo.raijmobi",
   "build": {
     "frontendDist": "../out",
-    "devUrl": "http://localhost:3000",
+    "devUrl": "http://10.0.0.17:3000",
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
   },

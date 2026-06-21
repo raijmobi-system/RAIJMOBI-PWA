@@ -1,6 +1,7 @@
 // app/page.tsx
 "use client"
 import dynamic from 'next/dynamic';
+import { Flex }from '@/styled-system/jsx'
 
 // Isso desabilita a renderização no servidor para este componente
 const MapWithNoSSR = dynamic(() => import('@/components/fixed/Map'), {
@@ -10,11 +11,12 @@ const MapWithNoSSR = dynamic(() => import('@/components/fixed/Map'), {
 
 export default function Monitoring() {
   return (
-    <main style={{ padding: '24px' }}>
-      <h1>Meu App com Mapa</h1>
-      <div style={{ marginTop: '20px', height: '400px' }}>
+    <Flex direction='column' height='100%'>
+      
+      <div style={{ marginTop: '20px', height: '400px',flex:'1' }}>
         <MapWithNoSSR />
       </div>
-    </main>
+      </Flex>
+    
   );
 }

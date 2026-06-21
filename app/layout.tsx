@@ -4,6 +4,7 @@
 import { Manrope } from "next/font/google";
 import "./globals.css"; 
 import { css } from "@/styled-system/css"; 
+import 'leaflet/dist/leaflet.css';
 
 import Navigation from "@/components/fixed/Navigation";
 
@@ -70,7 +71,7 @@ export default function RootLayout({
           <Navigation direction="column"/>
         </aside>
 
-        <main className={css({ flex: '1', minWidth: '0', width: '100%', overflowX: 'hidden'})}>
+        <main className={css({ flex: '1', minWidth: '0', width: '100%', overflowX: 'hidden',h: '100%'})}>
           
             {children}
           
