@@ -28,6 +28,7 @@ export default function RootLayout({
     <html
       lang="pt-BR"
       className={`${manrope.variable} ${css({ width: '100%' })}`} 
+      
     >
       <body className={css({
         display: 'grid',

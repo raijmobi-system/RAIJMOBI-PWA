@@ -4,11 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
-    "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "prepare": "panda codegen",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "build": "next build",
+    "preview-android": "next build && serve ../out -l 3000 -single"
   },
   "dependencies": {
     "@material-symbols-svg/react": "^0.9.0",
@@ -17,10 +18,12 @@
     "dexie": "^4.4.4",
     "framer-motion": "^12.40.0",
     "leaflet": "^1.9.4",
+    "maplibre-gl": "^5.24.0",
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "react-leaflet": "^5.0.0"
+    "react-leaflet": "^5.0.0",
+    "react-map-gl": "^8.1.1"
   },
   "devDependencies": {
     "@pandacss/dev": "^1.11.1",
@@ -32,6 +35,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "serve": "^14.2.6",
     "tailwindcss": "^4",
     "typescript": "^5.9.3"
   }

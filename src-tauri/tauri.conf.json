@@ -5,8 +5,8 @@
   "identifier": "com.pablomurilo.raijmobi",
   "build": {
     "frontendDist": "../out",
-    "devUrl": "http://10.0.0.17:3000",
-    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:3000",
+    "beforeDevCommand": "npm run preview-android",
     "beforeBuildCommand": "npm run build"
   },
   "app": {
