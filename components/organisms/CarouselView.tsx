@@ -30,10 +30,10 @@ export default function CarouselView({ titleElements, items }: CarouselViewProps
 
   const CarouselActions = (
     <div className={css({ display: 'flex', gap: '8px' })}>
-      <button onClick={scrollLeft} aria-label="Rolar para a esquerda" className={css({ padding: '8px', cursor: 'pointer' })}>
+      <button onClick={scrollLeft} aria-label="Rolar para a esquerda" className={css({ padding: '8px', cursor: 'pointer',background:'#262626',color: 'white', borderRadius: '100%',h:'40px',w:'40px'})}>
         &#8592;
       </button>
-      <button onClick={scrollRight} aria-label="Rolar para a direita" className={css({ padding: '8px', cursor: 'pointer' })}>
+      <button onClick={scrollRight} aria-label="Rolar para a direita" className={css({ padding: '8px', cursor: 'pointer',background:'#262626',color: 'white', borderRadius: '100%',h:'40px',w:'40px' })}>
         &#8594;
       </button>
     </div>

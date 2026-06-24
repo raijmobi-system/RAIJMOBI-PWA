@@ -24,7 +24,7 @@ export default function Navigation({ direction = 'column' }: NavigationProps) {
                 </li>
                 <li>
                     <LinkImage
-                        href="/runs/monitoring"
+                        href="/runs"
                         Icon={<Icon><DirectionsCar /></Icon>}
                         text='Carros'
                         direction='column'

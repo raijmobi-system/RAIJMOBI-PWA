@@ -6,7 +6,7 @@ import { css } from "../../styled-system/css";
 interface FrameComponentProps {
   titleElements?: React.ReactNode;
   actions?: React.ReactNode;      
-  children: React.ReactNode;      
+  children: React.ReactNode;    
 }
 
 export default function FrameComponent({ titleElements, actions, children }: FrameComponentProps) {
@@ -44,7 +44,8 @@ export default function FrameComponent({ titleElements, actions, children }: Fra
           display:'flex',
           flexDirection:'column',
           flex: '1',          
-          paddingY: '4'     
+          paddingY: '4' ,
+          gap:  '10px'  
         })} 
         aria-label="main"
       >

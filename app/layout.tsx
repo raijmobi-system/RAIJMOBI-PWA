@@ -72,16 +72,16 @@ export default function RootLayout({
           <Navigation direction="column"/>
         </aside>
 
-        <main className={css({ flex: '1', minWidth: '0', width: '100%', overflowX: 'hidden',h: '100%'})}>
+        <main className={css({ flex: '1', minWidth: '0', width: '100%', overflowX: 'hidden',h: '100%',background: '#fbf9f9'})}>
           
-            {children}
+            {children} 
           
         </main>
 
         {/* 2. ADICIONAMOS A SAFE AREA NO RODAPÉ MOBILE */}
         <footer className={css({
           gridArea: 'bottom',
-          background: 'gray.200',
+          background: '#262626',
           display: 'flex',
           flexDirection: 'row',
           justifyContent: 'space-around',

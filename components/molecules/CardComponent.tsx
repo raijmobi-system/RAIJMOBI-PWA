@@ -51,6 +51,7 @@ export default function CardComponent({
         paddingBlock: hasPadding ? '4' : '0', 
         border: '1px solid',
         borderColor: 'gray.200',
+        boxShadow: 'sm'
       })}
     >
       {Image && (

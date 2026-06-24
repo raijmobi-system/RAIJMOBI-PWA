@@ -3,7 +3,6 @@ import { cva } from '../../styled-system/css';
 import { flex } from '../../styled-system/patterns';
 import Link from "next/link";
 
-// 1. Definição do CVA (As regras visuais ficam isoladas aqui fora)
 const linkMoleculeRecipe = cva({
   base: {
     display: 'flex',
@@ -45,7 +44,6 @@ const linkMoleculeRecipe = cva({
       active: { color: 'gray' },
     }
   },
-  // 3. Compound Variants (Regras especiais baseadas na combinação de propriedades)
   compoundVariants: [
     {
       direction: 'column',
@@ -68,6 +66,7 @@ interface LinkMoleculeProps {
   extraElement?: React.ReactNode;
   direction?: 'row' | 'column';
   width?: 'auto' | 'full' | 'fixed-square';
+  isActive?: boolean; // Adicionado como opcional para não quebrar outros lugares
 }
 
 export default function LinkMolecule({
@@ -76,28 +75,50 @@ export default function LinkMolecule({
   text,
   extraElement,
   direction,
-  width
+  width,
+  isActive = false // Padrão falso caso não seja enviado
 }: LinkMoleculeProps) {
   
-  // Executa o CVA passando as props recebidas
   const className = linkMoleculeRecipe({ direction, width });
 
+  // Define dinamicamente a cor com base no estado ativo
+  const activeColor = isActive ? 'blue.500' : 'gray.500';
+
   return (
-    // 2. Usando o <Link> do Next.js para navegação otimizada
-    <Link href={href} className={className}>
-      {/* Container do Bloco Principal (Ícone + Texto) */}
+    <Link 
+      href={href} 
+      className={className}
+      // Garante que todo o container (incluindo ícones sem estilo próprio) herde a cor correta
+      style={{ color: `var(--colors-${activeColor.replace('.', '-')}, ${isActive ? 'blue' : 'gray'})` }}
+    >
       <div className={flex({ 
         direction: direction, 
         alignItems: 'center', 
         gap: '2',
         justifyContent: 'center',
-        width: direction === 'column' ? '100%' : 'auto'
+        width: direction === 'column' ? '100%' : 'auto',
+        color: activeColor // Panda CSS aplica a cor no bloco principal
       })}>
-        <span className={flex({ shrink: 0, alignItems: 'center', justifyContent: 'center' })}>{Icon}</span>
-        {text && <span className="text-sm font-medium text-gray-700 truncate">{text}</span>}
+        <span className={flex({ shrink: 0, alignItems: 'center', justifyContent: 'center' })}>
+          {Icon}
+        </span>
+        
+        {text && (
+          <span 
+            className={flex({
+              fontSize: 'sm',
+              fontWeight: 'medium',
+              color: activeColor, // Força a cor do texto a seguir o estado ativo
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            })}
+          >
+            {text}
+          </span>
+        )}
       </div>
 
-      {/* Elemento Extra */}
       {extraElement && width !== 'fixed-square' && (
         <span className={flex({ shrink: 0 })}>{extraElement}</span>
       )}

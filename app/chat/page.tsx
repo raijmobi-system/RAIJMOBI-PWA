@@ -17,7 +17,7 @@ export default function ChatPage() {
             <>
             <CardComponent fullWidth={true} direction="row"
             
-            content={<Flex direction="row" gap={4}>
+            content={<Flex direction="row" gap='4'>
                 <Avatar src="cliente.jpeg" />
                 <Flex direction="column">
                     <Text><b>Pablo Murilo</b></Text>
@@ -29,6 +29,7 @@ export default function ChatPage() {
                 <Text>14:59</Text>
                 <Icon></Icon>
             </Flex>}/>
+            
             <CardComponent fullWidth={true} direction="row"
             
             content={<Flex direction="row" gap={4}>
