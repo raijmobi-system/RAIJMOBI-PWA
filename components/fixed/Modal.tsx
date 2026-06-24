@@ -120,7 +120,7 @@ export default function Modal({ isOpen, onClose, children, title }: ModalProps) 
         </div>
 
         {/* Conteúdo Dinâmico */}
-        <div className={css({ p: 4 })}>{children}</div>
+        <div className={css({ p: 4 ,minW: '200px',width: 'auto'})}>{children}</div>
       </div>
     </div>,
     document.body

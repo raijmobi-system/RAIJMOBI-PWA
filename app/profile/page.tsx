@@ -4,13 +4,16 @@ import React, { useState } from "react";
 import { css } from "../../styled-system/css";
 import { flex } from "../../styled-system/patterns";
 
-// Importações dos seus componentes (Ajuste os caminhos conforme sua pasta)
+// Importações dos seus componentes
 import FrameComponent from "@/components/organisms/FrameComponent";
 import LinkImage from "@/components/molecules/LinkImage";
 import CardComponent from "@/components/molecules/CardComponent";
 import Modal from "@/components/fixed/Modal";
 
-import { Text } from '@/components/atoms/typography'
+// Importações dos Átomos e Moléculas necessários
+import { Text } from '@/components/atoms/typography';
+import { Button } from '@/components/atoms/action'; // Certifique-se deste caminho
+import { FormField } from '@/components/molecules/FormFIeld'; // Certifique-se deste caminho
 
 // Ícones do Material Symbols
 import {
@@ -24,27 +27,112 @@ import {
   ChevronRight
 } from "@material-symbols-svg/react";
 
-export default function Perfil() {
-  // Estado para controlar a abertura do Modal
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<string>("");
+/* =========================================
+   COMPONENTES INTERNOS DA PÁGINA (CHILDREN)
+========================================= */
 
-  const handleOpenModal = (type: string) => {
-    setModalType(type);
-    setIsModalOpen(true);
+const VehicleForm = ({ onClose }: { onClose: () => void }) => {
+  return (
+    <div className={flex({ direction: "column", gap: "4", py: "2" })}>
+      <FormField 
+        id="modelo" 
+        label="Modelo do veículo" 
+        placeholder="Ex: Ford Ka" 
+      />
+      <FormField 
+        id="cor" 
+        label="Cor" 
+        placeholder="Ex: Branco" 
+      />
+      <FormField 
+        id="placa" 
+        label="Placa" 
+        placeholder="Ex: ABC-1234" 
+      />
+      
+      <div className={css({ mt: "4" })}>
+        <Button width="full" onClick={onClose}>
+          <Text color="white" weight="bold">Salvar Veículo</Text>
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+const PersonalInfoForm = ({ onClose }: { onClose: () => void }) => {
+  return (
+    <div className={flex({ direction: "column", gap: "4", py: "2" })}>
+      <FormField 
+        id="nome" 
+        label="Nome completo" 
+        defaultValue="Fernando" 
+      />
+      <FormField 
+        id="email" 
+        label="E-mail" 
+        defaultValue="fernando@email.com" 
+      />
+      <FormField 
+        id="telefone" 
+        label="Telefone" 
+        defaultValue="(84) 9 9999-9999" 
+      />
+      
+      <div className={css({ mt: "4" })}>
+        <Button width="full" onClick={onClose}>
+          <Text color="white" weight="bold">Salvar Alterações</Text>
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+/* =========================================
+   TIPAGEM DOS MODAIS DESTA PÁGINA
+========================================= */
+type ModalType = 'none' | 'vehicle' | 'payment' | 'personal_info';
+
+/* =========================================
+   COMPONENTE PRINCIPAL
+========================================= */
+export default function Perfil() {
+  // Estado para controlar qual modal está aberto
+  const [activeModal, setActiveModal] = useState<ModalType>('none');
+
+  const closeModal = () => setActiveModal('none');
+
+  // Define o título dinamicamente com base no estado
+  const getModalTitle = () => {
+    switch (activeModal) {
+      case 'vehicle': return 'Adicionar Veículo';
+      case 'payment': return 'Adicionar Cartão';
+      case 'personal_info': return 'Informações Pessoais';
+      default: return '';
+    }
+  };
+
+  // Define qual formulário será renderizado no body do modal
+  const renderModalContent = () => {
+    switch (activeModal) {
+      case 'vehicle': 
+        return <VehicleForm onClose={closeModal} />;
+      case 'personal_info': 
+        return <PersonalInfoForm onClose={closeModal} />;
+      case 'payment': 
+        return <p className={css({ color: "gray.600" })}>Formulário de cartão entrará aqui...</p>; 
+      default: 
+        return null;
+    }
   };
 
   return (
-    // Container Principal: usa o flex em coluna solicitado para ajustar tudo
     <main 
       className={flex({ 
         direction: "column", 
         gap: "6", 
         padding: "4",
-        backgroundColor: "#f9f9f9", // Fundo cinza bem claro para destacar os cards brancos
+        backgroundColor: "#f9f9f9",
         minHeight: "100vh",
-        // Hackzinho via PandaCSS para sobrescrever o minHeight: 400px padrão do seu FrameComponent 
-        // e deixá-lo abraçar o conteúdo perfeitamente como na imagem.
         "& section": { minHeight: "auto !important" } 
       })}
     >
@@ -64,7 +152,7 @@ export default function Perfil() {
           }
           actions={
             <button 
-              onClick={() => handleOpenModal("Veículo")}
+              onClick={() => setActiveModal('vehicle')}
               className={css({ color: "green.700", fontWeight: "semibold", cursor: "pointer", bg: "transparent" })}
             >
               + Adicionar
@@ -72,7 +160,6 @@ export default function Perfil() {
           }
         >
           <div className={flex({ direction: "column", gap: "4" })}>
-            {/* Card Ford Ka */}
             <div className={css({ "& > div": { backgroundColor: "gray.50", border: "none" } })}>
               <CardComponent
                 fullWidth
@@ -85,7 +172,7 @@ export default function Perfil() {
                 }
                 content={
                   <div className={flex({ direction: "column", flex: 1, ml: "4" })}>
-                    <Text color="danger"> Ford k</Text>
+                    <Text color="danger">Ford Ka</Text>
                     <span className={css({ color: "violet", fontSize: "14px", mt: "1" })}>Branco • Placa: ABC-1234</span>
                   </div>
                 }
@@ -97,7 +184,6 @@ export default function Perfil() {
               />
             </div>
 
-            {/* Card Honda Civic */}
             <div className={css({ "& > div": { backgroundColor: "gray.50", border: "none" } })}>
               <CardComponent
                 fullWidth
@@ -141,7 +227,7 @@ export default function Perfil() {
           }
           actions={
             <button 
-              onClick={() => handleOpenModal("Pagamento")}
+              onClick={() => setActiveModal('payment')}
               className={css({ color: "green.700", fontWeight: "semibold", cursor: "pointer", bg: "transparent" })}
             >
               + Adicionar
@@ -186,12 +272,17 @@ export default function Perfil() {
           }
         >
           <div className={flex({ direction: "column", gap: "6", pt: "2" })}>
-            <LinkImage
-              href="#"
-              Icon={<Person className={css({ color: "green.700", fontSize: "24px" })} />}
-              text="Informações Pessoais"
-              extraElement={<ChevronRight className={css({ color: "gray.400" })} />}
-            />
+            <div 
+              onClick={() => setActiveModal('personal_info')} 
+              className={css({ cursor: "pointer" })}
+            >
+              <LinkImage
+                href="#"
+                Icon={<Person className={css({ color: "green.700", fontSize: "24px" })} />}
+                text="Informações Pessoais"
+                extraElement={<ChevronRight className={css({ color: "gray.400" })} />}
+              />
+            </div>
             <LinkImage
               href="#"
               Icon={<Security className={css({ color: "green.700", fontSize: "24px" })} />}
@@ -203,19 +294,14 @@ export default function Perfil() {
       </div>
 
       {/* =========================================
-          MODAL GLOBAL DA PÁGINA
+          MODAL GLOBAL E DINÂMICO
       ========================================= */}
       <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        title={`Adicionar novo ${modalType}`}
+        isOpen={activeModal !== 'none'} 
+        onClose={closeModal} 
+        title={getModalTitle()}
       >
-        <div className={flex({ direction: "column", gap: "4", py: "4" })}>
-          <p className={css({ color: "gray.600" })}>
-            Formulário para adicionar {modalType.toLowerCase()} entraria aqui...
-          </p>
-          {/* Aqui você pode injetar moléculas de Inputs futuramente */}
-        </div>
+        {renderModalContent()}
       </Modal>
 
     </main>

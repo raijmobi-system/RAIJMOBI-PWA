@@ -23,7 +23,7 @@ const textRecipe = cva({
       white: { color: 'white' },
       muted: { color: 'gray' },
       danger: { color: 'red' },
-      success: { color: 'green' },
+      success: { color: 'green !important' },
       cupom: { color: '#1b1c1c'},
       special: {color: '#547812'}
     },

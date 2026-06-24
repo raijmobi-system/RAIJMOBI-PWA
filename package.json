@@ -8,8 +8,10 @@
     "lint": "eslint",
     "prepare": "panda codegen",
     "tauri": "tauri",
-    "build": "next build"  },
+    "build": "next build"
+  },
   "dependencies": {
+    "@capacitor/core": "^8.4.1",
     "@material-symbols-svg/react": "^0.9.0",
     "@tauri-apps/plugin-geolocation": "^2.3.2",
     "@tauri-apps/plugin-sql": "^2.4.0",
@@ -24,6 +26,7 @@
     "react-map-gl": "^8.1.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.4.1",
     "@pandacss/dev": "^1.11.1",
     "@tailwindcss/postcss": "^4",
     "@tauri-apps/cli": "^2.11.3",
