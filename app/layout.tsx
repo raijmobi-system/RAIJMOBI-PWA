@@ -2,7 +2,7 @@
 
 
 import { Manrope } from "next/font/google";
-import "./globals.css"; 
+import "./globals.css";  
 import { css } from "@/styled-system/css"; 
 import 'leaflet/dist/leaflet.css';
 

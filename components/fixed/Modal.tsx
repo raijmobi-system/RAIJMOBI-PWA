@@ -83,7 +83,7 @@ export default function Modal({ isOpen, onClose, children, title }: ModalProps) 
             <h2
               className={css({
                 fontSize: "lg",
-                fontWeight: "semibold",
+                fontWeight: "500",
                 color: "gray.900",
                 _dark: { color: "white" },
               })}

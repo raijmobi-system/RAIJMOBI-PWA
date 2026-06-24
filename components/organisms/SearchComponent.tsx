@@ -33,8 +33,10 @@ export default function SearchComponent({
       alignItems: 'center',           
       padding: '2.5',
       backgroundColor: 'white',
-      borderRadius: 'md',
-      gap: '2' // Adicionado para os itens não colarem uns nos outros
+      borderRadius: '10px',
+      gap: '2', // Adicionado para os itens não colarem uns nos outros
+      marginInline: '20px',
+      marginTop: '20px'
     })}>
       
       {/* O ícone de lupa geralmente é padrão para busca, mas fica fixo */}

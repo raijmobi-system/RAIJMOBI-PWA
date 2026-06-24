@@ -10,6 +10,7 @@ interface CardComponentProps {
   animate?: boolean; 
   hasPadding?: boolean; 
   fullWidth?: boolean;   
+  backgroundColor?: string; // Adicione esta linha
 }
 
 export default function CardComponent({ 
@@ -19,7 +20,8 @@ export default function CardComponent({
   direction = 'column', 
   animate = false,
   hasPadding = true, 
-  fullWidth = false, 
+  fullWidth = false,
+  backgroundColor = 'white', // Defina o valor padrão
 }: CardComponentProps) {
 
   const flexStyles = {
@@ -31,7 +33,7 @@ export default function CardComponent({
     <div 
       className={flex({
         direction: flexStyles.direction,
-        wrap: flexStyles.wrap,
+        
         
         // CORREÇÃO: Se for coluna, estica os itens. Se for linha, centraliza verticalmente.
         alignItems: direction === 'column' ? 'stretch' : 'center', 
@@ -43,7 +45,7 @@ export default function CardComponent({
         _hover: animate ? { transform: 'translateY(-4px)', boxShadow: 'md' } : {},
         width: fullWidth ? '100%' : '318px', 
         justifyContent: 'space-between',
-        background: 'white',
+        background: backgroundColor,
         minHeight: '72px',
         paddingInline: hasPadding ? '4' : '0', 
         paddingBlock: hasPadding ? '4' : '0', 

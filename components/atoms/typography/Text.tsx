@@ -21,9 +21,11 @@ const textRecipe = cva({
     color: {
       primary: { color: 'gray.900' },
       white: { color: 'white' },
-      muted: { color: 'gray.500' },
-      danger: { color: 'red.500' },
-      success: { color: 'green.600' },
+      muted: { color: 'gray' },
+      danger: { color: 'red' },
+      success: { color: 'green' },
+      cupom: { color: '#1b1c1c'},
+      special: {color: '#547812'}
     },
     align: {
       left: { textAlign: 'left' },
