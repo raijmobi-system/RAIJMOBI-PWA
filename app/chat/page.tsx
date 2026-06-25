@@ -14,8 +14,8 @@ import { css } from "@/styled-system/css";
 export default function ChatPage() {
     return (
         <FrameComponent>
-            <>
-            <CardComponent fullWidth={true} direction="row"
+            
+            <CardComponent fullWidth={true} direction="row" 
             
             content={<Flex direction="row" gap='4'>
                 <Avatar src="cliente.jpeg" />
@@ -44,7 +44,7 @@ export default function ChatPage() {
                 <Text>14:59</Text>
                 <Icon></Icon>
             </Flex>}/>
-            </>
+            
         </FrameComponent>
     );
 }

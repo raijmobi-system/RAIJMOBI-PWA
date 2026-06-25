@@ -13,7 +13,7 @@ import { Star, Edit, Group } from '@material-symbols-svg/react';
 
 
 
-export default function Runs() {
+export default function Register() {
  return(
     <Flex>
        Só teste 

@@ -1,5 +1,5 @@
 "use client";
-
+import { useRouter } from "next/navigation";
 import { useState } from 'react';
 import { Flex } from '@/styled-system/jsx';
 import { css } from "@/styled-system/css"; 
@@ -12,6 +12,8 @@ import { CardComponent } from '@/components/molecules';
 import { Star, Edit, Group } from '@material-symbols-svg/react';
 
 type TabType = 'passageiro' | 'motorista' | 'finalizados';
+
+
 
 /* =========================================
    COMPONENTE AUXILIAR: TRAJETO VISUAL
@@ -43,11 +45,13 @@ const RouteDisplay = ({ title, origin, destination }: { title: string, origin: s
 ========================================= */
 
 const PassageiroContent = () => {
+   const router = useRouter();
   return (
     <Flex direction="column" gap="4" width="100%">
       
       {/* Card 1: Confirmado */}
       <CardComponent
+      onClick={() => router.push('/runs/monitoring')}
         fullWidth
         direction="row"
         Image={<img src="https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=150&h=150&fit=crop" alt="Van" className={css({ w: '80px', h: '80px', objectFit: 'cover', borderRadius: 'lg' })} />}
@@ -55,7 +59,7 @@ const PassageiroContent = () => {
           <RouteDisplay title="Kiwidi Express S01" origin="Pau dos Ferros" destination="Rafael Fernandes" />
         }
         extraContent={
-          <Text size="xs" weight="bold" color="success">CONFIRMADO</Text>
+          <Text size="xs" weight="bold" color="success">Em andamento</Text>
         }
       />
 
@@ -193,6 +197,8 @@ export default function Runs() {
       default: return null;
     }
   };
+
+ 
 
   return (
     <Flex direction='column' height='100%' bg="#f9f9f9">

@@ -11,6 +11,7 @@ interface CardComponentProps {
   hasPadding?: boolean; 
   fullWidth?: boolean;   
   backgroundColor?: string;
+  onClick?: React.MouseEventHandler<HTMLDivElement>;
 }
 
 export default function CardComponent({ 
@@ -22,6 +23,8 @@ export default function CardComponent({
   hasPadding = true, 
   fullWidth = false,
   backgroundColor = 'white',
+  onClick
+  
 }: CardComponentProps) {
 
   const flexStyles = {
@@ -31,6 +34,7 @@ export default function CardComponent({
 
   return (
     <div 
+      onClick={onClick}
       className={flex({
         direction: flexStyles.direction,
         alignItems: direction === 'column' ? 'stretch' : 'center', 
@@ -47,8 +51,9 @@ export default function CardComponent({
         paddingBlock: hasPadding ? '4' : '0', 
         border: '1px solid',
         borderColor: 'gray.200',
-        boxShadow: 'sm'
+        boxShadow: 'xs'
       })}
+      
     >
       {Image && (
         <div 
