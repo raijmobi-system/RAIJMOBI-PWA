@@ -10,7 +10,7 @@ interface CardComponentProps {
   animate?: boolean; 
   hasPadding?: boolean; 
   fullWidth?: boolean;   
-  backgroundColor?: string; // Adicione esta linha
+  backgroundColor?: string;
 }
 
 export default function CardComponent({ 
@@ -21,7 +21,7 @@ export default function CardComponent({
   animate = false,
   hasPadding = true, 
   fullWidth = false,
-  backgroundColor = 'white', // Defina o valor padrão
+  backgroundColor = 'white',
 }: CardComponentProps) {
 
   const flexStyles = {
@@ -33,11 +33,7 @@ export default function CardComponent({
     <div 
       className={flex({
         direction: flexStyles.direction,
-        
-        
-        // CORREÇÃO: Se for coluna, estica os itens. Se for linha, centraliza verticalmente.
         alignItems: direction === 'column' ? 'stretch' : 'center', 
-        
         gap: '4', 
         borderRadius: '14px', 
         overflow: 'hidden', 
@@ -55,13 +51,41 @@ export default function CardComponent({
       })}
     >
       {Image && (
-        <div className={css({ flexShrink: '0', display: 'flex', alignItems: 'center', maxH: '200px', width: '100%' })}>
+        <div 
+          className={css({ 
+            flexShrink: '0', 
+            display: 'flex', 
+            alignItems: 'center', 
+            maxH: '200px', 
+            // CORREÇÃO 1: A imagem só deve ter 100% de largura se o card for uma coluna. 
+            // Se for linha, ela deve assumir o tamanho natural ("auto").
+            width: direction === 'column' ? '100%' : 'auto' 
+          })}
+        >
           {Image}
         </div>
       )}
       
-      {content}
-      {extraContent}
+      {/* CORREÇÃO 2: Envolvemos o conteúdo para garantir que ele expanda e não quebre */}
+      {content && (
+        <div 
+          className={css({ 
+            flex: 1, // Faz o conteúdo ocupar todo o espaço restante
+            minWidth: 0, // DICA DE OURO: Evita que textos grandes quebrem o flexbox pai
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center'
+          })}
+        >
+          {content}
+        </div>
+      )}
+
+      {extraContent && (
+        <div className={css({ flexShrink: 0 })}>
+           {extraContent}
+        </div>
+      )}
     </div>
   );
 }
