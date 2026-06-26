@@ -50,7 +50,7 @@ export default function Modal({ isOpen, onClose, children, title }: ModalProps) 
         justifyContent: "center",
         bg: "rgba(0, 0, 0, 0.4)", // Fundo escurecido
         backdropFilter: "blur(4px)", // Efeito de desfoque
-        p: 4,
+        
       })}
     >
       <div
@@ -58,16 +58,16 @@ export default function Modal({ isOpen, onClose, children, title }: ModalProps) 
         className={css({
           position: "relative",
           bg: "white",
-          _dark: { bg: "gray.800" }, // Suporte a Dark Mode nativo no Panda
+          _dark: { bg: "gray.800" }, 
           rounded: "lg",
           shadow: "xl",
-          maxH: "90vh",
-          maxW: "3xl",
+          maxH: "100vh",
+          maxW: "100vw",
           w: "auto",
           overflow: "auto",
         })}
       >
-        {/* Cabeçalho */}
+        
         <div
           className={css({
             display: "flex",

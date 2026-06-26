@@ -9,25 +9,22 @@ import { AISearchInput } from '@/components/molecules/AISearchInput';
 
 export const SearchFilterForm = () => {
   return (
-    // Container principal do formulário (pode ser o miolo do seu Modal)
     <Box 
       display="flex" 
       flexDirection="column" 
       height="100%" 
-      maxHeight="800px" // Simula o limite da tela
+      maxHeight="800px" 
       bg="white"
     >
-      {/* Área de conteúdo com Scroll */}
       <Box 
         flex="1" 
         overflowY="auto" 
-        padding="6" 
+         
         display="flex" 
         flexDirection="column" 
         gap="4"
       >
         
-        {/* 1. Seção: Pesquisa Inteligente com IA */}
         <FilterCard isFeatured icon="🧠">
           <Text weight="medium" css={{ mb: '4' }}>Pesquisa Inteligente com IA</Text>
           <AISearchInput />
@@ -83,37 +80,9 @@ export const SearchFilterForm = () => {
         </FilterCard>
 
         {/* 4. Seção: Preço e Vagas */}
-        <FilterCard icon="💵" title="Preço e Vagas">
-          <Box display="flex" flexDirection="column" gap="6">
-            <SliderControl 
-              id="preco"
-              label="Preço máximo"
-              minLabel=""
-              maxLabel=""
-              currentValue="R$ 100"
-            />
-            <SelectField 
-              id="vagas" 
-              label="Vagas disponíveis" 
-              options={[
-                { value: 'qualquer', label: 'Qualquer' },
-                { value: '1', label: '1 vaga' },
-                { value: '2', label: '2 vagas' },
-                { value: '3+', label: '3 ou mais' },
-              ]} 
-            />
-          </Box>
-        </FilterCard>
+        
 
-        {/* 5. Seção: Veículo */}
-        <FilterCard icon="🚗" title="Veículo">
-          <Grid columns={2} gap="4">
-            <CheckboxItem id="carro" label="Carro" defaultChecked />
-            <CheckboxItem id="suv" label="SUV" defaultChecked />
-            <CheckboxItem id="van" label="Van" defaultChecked />
-            <CheckboxItem id="moto" label="Moto" />
-          </Grid>
-        </FilterCard>
+        
       </Box>
 
       {/* Rodapé Fixo com Botões de Ação */}
@@ -136,7 +105,7 @@ export const SearchFilterForm = () => {
           fontWeight="medium"
           cursor="pointer"
         >
-          Limpar Filtros
+          Cancelar
         </Box>
         
         <Box 
@@ -149,7 +118,7 @@ export const SearchFilterForm = () => {
           fontWeight="medium"
           cursor="pointer"
         >
-          Aplicar Filtros
+          Pesquisar
         </Box>
       </Flex>
     </Box>

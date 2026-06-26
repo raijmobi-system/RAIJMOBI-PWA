@@ -13,9 +13,9 @@ export default function Monitoring() {
   return (
     <Flex direction='column' height='100%'>
       
-      <div style={{ marginTop: '20px', height: '400px',flex:'1' }}>
+      
         <MapWithNoSSR />
-      </div>
+      
       </Flex>
     
   );
