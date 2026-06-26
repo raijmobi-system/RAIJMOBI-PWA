@@ -16,7 +16,14 @@ export default defineConfig({
 
   // Useful for theme customization
   theme: {
-    extend: {},
+    extend: {
+      tokens: {
+        fonts: {
+          // Aponta diretamente para a variável do Next.js que criamos no Layout
+          sans: { value: 'var(--font-manrope), sans-serif' }
+        }
+      }
+    },
   },
 
   // The output directory for your css system

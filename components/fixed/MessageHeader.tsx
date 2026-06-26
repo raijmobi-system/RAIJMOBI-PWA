@@ -12,7 +12,7 @@ export default function MessageHeader() {
   const router = useRouter();
     return(
       
-        <header className={css({ bg: 'gray.800', color: 'white', py: '4' ,display: 'flex',flexDirection: 'row',justifyContent:'space-between',px:'6',backgroundColor:'rgb(38, 38, 38)',opacity:'1',maxHeight:'88px'})}>
+        <header className={css({ bg: '#262626', color: 'white', py: '4' ,display: 'flex',flexDirection: 'row',justifyContent:'space-between',px:'6',backgroundColor:'rgb(38, 38, 38)',opacity:'1',maxHeight:'88px'})}>
           
                   <Flex 
                           align="center" 

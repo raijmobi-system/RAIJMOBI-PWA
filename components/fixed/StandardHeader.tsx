@@ -6,7 +6,7 @@ import {Link} from '@/components/atoms/action';
 
 export default function StandardHeader() {
     return(
-        <header className={css({ bg: 'gray.800', color: 'white', py: '4' ,display: 'flex',flexDirection: 'row',justifyContent:'space-between',px:'6',backgroundColor:'rgb(38, 38, 38)',opacity:'1',maxHeight:'88px'})}>
+        <header className={css({ bg: '#262626', color: 'white', py: '4' ,display: 'flex',flexDirection: 'row',justifyContent:'space-between',px:'6',backgroundColor:'rgb(38, 38, 38)',opacity:'1',maxHeight:'88px'})}>
                   <Flex direction='column' alignItems='start'>
                     <Heading as='h1' size='xl' weight="semibold" color='green' className={css({ textAlign: 'center', mb: '2' })}>
                       Olá, Pablo Murilo !
@@ -16,7 +16,7 @@ export default function StandardHeader() {
                     </Text>
                   </Flex>
                   <Link>
-                    <Avatar src="cliente.jpeg" size="fx" />
+                    <Avatar src="/cliente.jpeg" size="fx" />
                   </Link>
         
                 </header>
