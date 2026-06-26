@@ -8,8 +8,9 @@ import { ArrowBack, Send } from '@material-symbols-svg/react'; // Ajuste seus í
 import ChatMessage from '@/components/molecules/ChatMessage';
 import { useRouter } from 'next/navigation';
 
+
 export default function ChatPage() {
-  const router = useRouter();
+  
 
   return (
     <Flex direction="column" h="100%" w="100%">
@@ -33,7 +34,7 @@ export default function ChatPage() {
           author="Rafael"
           text="Fala Fernando, beleza?"
           time="14:20"
-          avatarSrc="rafael.jpeg"
+          avatarSrc="/Rafael.jpeg"
         />
         
         <ChatMessage 
@@ -41,7 +42,7 @@ export default function ChatPage() {
           author="Fernando"
           text="Tudo certo! E aí, confirmou a carona?"
           time="14:22"
-          avatarSrc="fernando.jpeg"
+          avatarSrc="/Fernando.jpeg"
         />
 
         <ChatMessage 
@@ -49,7 +50,7 @@ export default function ChatPage() {
           author="Rafael"
           text="Sim! Tô chegando no ponto de encontro!"
           time="14:25"
-          avatarSrc="rafael.jpeg"
+          avatarSrc="/Rafael.jpeg"
         />
       </Flex>
 

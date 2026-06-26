@@ -5,6 +5,7 @@ import { Manrope } from "next/font/google";
 import "./globals.css";  
 import { css } from "@/styled-system/css"; 
 import 'leaflet/dist/leaflet.css';
+import { usePathname } from 'next/navigation';
 
 import Navigation from "@/components/fixed/Navigation";
 
@@ -23,6 +24,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const pathname = usePathname();
+  const isChatPage = pathname?.includes('/chat/conversation');
   
   return (
     <html
@@ -79,23 +82,22 @@ export default function RootLayout({
         </main>
 
         {/* 2. ADICIONAMOS A SAFE AREA NO RODAPÉ MOBILE */}
-        <footer className={css({
-          gridArea: 'bottom',
-          background: '#262626',
-          display: 'flex',
-          flexDirection: 'row',
-          justifyContent: 'space-around',
-          
-          // Padding normal do conteúdo + o espaço extra da barra de navegação do OS
-          paddingTop: '4',
-          paddingLeft: '4',
-          paddingRight: '4',
-          paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))', 
-
-          md: { display: 'none' },
-        })}>
-          <Navigation direction="row"/>
-        </footer>
+        {!isChatPage && (
+          <footer className={css({
+            gridArea: 'bottom',
+            background: '#262626',
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'space-around',
+            paddingTop: '4',
+            paddingLeft: '4',
+            paddingRight: '4',
+            paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))', 
+            md: { display: 'none' },
+          })}>
+            <Navigation direction="row"/>
+          </footer>
+        )}
 
       </body>
     </html>
