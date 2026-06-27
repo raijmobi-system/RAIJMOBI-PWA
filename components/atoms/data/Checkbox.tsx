@@ -21,14 +21,14 @@ const checkboxRecipe = cva({
 
     // Quando estiver checado
     _checked: {
-      backgroundColor: 'blue.600',
+      backgroundColor: '#547812',
       borderColor: 'blue.600',
       
       // Criamos o "V" de checado usando um pseudo-elemento sutil
       _after: {
         content: '""',
-        width: '2px',
-        height: '4px',
+        width: '4px',
+        height: '8px',
         borderStyle: 'solid',
         borderColor: 'white',
         borderWidth: '0 2px 2px 0',

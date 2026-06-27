@@ -1,6 +1,5 @@
 "use client";
 
-
 import { Manrope } from "next/font/google";
 import "./globals.css";  
 import { css } from "@/styled-system/css"; 
@@ -8,16 +7,13 @@ import 'leaflet/dist/leaflet.css';
 import { usePathname } from 'next/navigation';
 
 import Navigation from "@/components/fixed/Navigation";
-
+import DynamicHeader from "@/components/fixed/DynamicHeader"; 
 
 const manrope = Manrope({
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-manrope', // Cria a variável CSS para usarmos globalmente
+  variable: '--font-manrope',
 });
-import DynamicHeader from "@/components/fixed/DynamicHeader"; // Importa o gerenciador que criamos acima
-
-
 
 export default function RootLayout({
   children,
@@ -25,64 +21,72 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  const isChatPage = pathname?.includes('/chat/conversation');
   
+  // 1. VERIFICAÇÕES DE ROTA
+  const isChatPage = pathname?.includes('/chat/conversation');
+  const isUserPage = pathname?.startsWith('/user'); 
+
   return (
     <html
       lang="pt-BR"
       className={`${manrope.variable} ${css({ width: '100%' })}`} 
-      
     >
       <body className={css({
         display: 'grid',
         backgroundColor: 'gray.50',
-        minHeight: '100vh', // Garante que o body ocupe a tela cheia
+        minHeight: '100vh', 
 
-        // 1. ADICIONAMOS A SAFE AREA NO TOPO DO BODY (Protege o Header no mobile)
         paddingTop: 'env(safe-area-inset-top, 0px)', 
 
-        gridTemplateRows: 'auto 1fr auto',
+        // 2. GRID MOBILE DINÂMICO
+        gridTemplateRows: isUserPage ? '1fr' : 'auto 1fr auto',
         gridTemplateColumns: '1fr',
-        gridTemplateAreas: `
-          "header"
-          "main"
-          "bottom"
-        `,
+        gridTemplateAreas: isUserPage 
+          ? `"main"` 
+          : `
+            "header"
+            "main"
+            "bottom"
+          `,
 
         md: {
-          gridTemplateRows: 'auto 1fr',
-          gridTemplateColumns: '80px 1fr',
-          gridTemplateAreas: `
-            "aside header"
-            "aside main"
-          `,
-          // No desktop, não precisamos do padding do notch no topo do body
+          // 3. GRID DESKTOP DINÂMICO (Evita o buraco de 80px à esquerda)
+          gridTemplateRows: isUserPage ? '1fr' : 'auto 1fr',
+          gridTemplateColumns: isUserPage ? '1fr' : '80px 1fr',
+          gridTemplateAreas: isUserPage 
+            ? `"main"`
+            : `
+              "aside header"
+              "aside main"
+            `,
           paddingTop: '0px', 
         },
       })}>
 
-        <DynamicHeader/>
+        {/* HEADER OCULTO EM /user */}
+        {!isUserPage && <DynamicHeader/>}
 
-        <aside
-          className={css({
-            gridArea: 'aside',
-            background: 'gray.100',
-            padding: '6',
-            display: 'none',
-            md: { display: 'flex', flexDirection: 'column' },
-          })}
-        >
-          <Navigation direction="column"/>
-        </aside>
+        {/* ASIDE OCULTO EM /user */}
+        {!isUserPage && (
+          <aside
+            className={css({
+              gridArea: 'aside',
+              background: 'gray.100',
+              padding: '6',
+              display: 'none',
+              md: { display: 'flex', flexDirection: 'column' },
+            })}
+          >
+            <Navigation direction="column"/>
+          </aside>
+        )}
 
-        <main className={css({ flex: '1', minWidth: '0', width: '100%', overflowX: 'hidden',h: '100%',background: '#fbf9f9'})}>
-          
-            {children} 
-          
+        <main className={css({ flex: '1', minWidth: '0', width: '100%', overflowX: 'hidden', h: '100%', background: '#fbf9f9'})}>
+          {children} 
         </main>
 
-        {/* 2. ADICIONAMOS A SAFE AREA NO RODAPÉ MOBILE */}
-        {!isChatPage && (
+        {/* FOOTER OCULTO NO CHAT E EM /user */}
+        {!isChatPage && !isUserPage && (
           <footer className={css({
             gridArea: 'bottom',
             background: '#262626',

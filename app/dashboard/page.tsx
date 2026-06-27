@@ -1,17 +1,17 @@
 "use client";
 
 import { useState ,useEffect} from 'react';
-import { Flex } from '../styled-system/jsx';
-import { SearchComponent } from '../components/organisms';
+import { Flex } from '@/styled-system/jsx';
+import { SearchComponent } from '@/components/organisms';
 import { Tune, WandStars, PercentDiscount, VerifiedUser } from '@material-symbols-svg/react';
-import { Icon, Avatar } from '../components/atoms/presentation';
-import { Text } from '../components/atoms/typography';
-import { Button, IconButton } from '../components/atoms/action';
+import { Icon, Avatar } from '@/components/atoms/presentation';
+import { Text } from '@/components/atoms/typography';
+import { Button, IconButton } from '@/components/atoms/action';
 import { CardComponent } from '@/components/molecules';
-import { css } from "../styled-system/css"; 
-import Modal from '../components/fixed/Modal'; 
+import { css } from "@/styled-system/css"; 
+import Modal from '@/components/fixed/Modal'; 
 import RideSummary from '@/components/template/RideSummary';
-import CarouselView from '../components/organisms/CarouselView'; 
+import CarouselView from '@/components/organisms/CarouselView'; 
 import { SearchFilterForm } from '@/components/template/SearchFilterForm'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import { useRouter } from 'next/navigation';
@@ -55,7 +55,7 @@ const RideDetailsContent = ({ onClose }: { onClose: () => void }) => {
   );
 };
 
-export default function Home() {
+export default function Dashboard() {
   // 3. O estado agora guarda "qual" modal está aberto, e não apenas se está aberto
   const [activeModal, setActiveModal] = useState<ModalType>('none');
 

@@ -38,6 +38,12 @@ const buttonRecipe = cva({
         color: 'gray.300', 
         _hover: { color: 'white' } 
       },
+      special: { 
+        backgroundColor: 'white',
+        color: 'gray.300',
+        borderColor: 'gray.800', 
+        
+      },
     },
     size: {
       sm: { height: '8', paddingX: '3', fontSize: 'sm' },
