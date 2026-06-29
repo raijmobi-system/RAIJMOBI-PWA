@@ -1,4 +1,4 @@
-
+"use client"
 import { Box, Flex } from '@/styled-system/jsx';
 import { Text} from '@/components/atoms/typography';
 import { Input } from '@/components/atoms/data';

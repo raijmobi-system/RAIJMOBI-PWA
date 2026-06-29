@@ -28,7 +28,7 @@ export default function Navigation({ direction = 'column' }: NavigationProps) {
     };
 
     // Armazenamos os booleanos para não repetir a função duas vezes no mesmo Link
-    const isHomeActive = checkIsActive('/');
+    const isHomeActive = checkIsActive('/dashboard');
     const isRunsActive = checkIsActive('/runs');
     const isChatActive = checkIsActive('/chat');
     const isProfileActive = checkIsActive('/profile');
@@ -38,7 +38,7 @@ export default function Navigation({ direction = 'column' }: NavigationProps) {
             <ul className={css({ display: 'flex', flexDirection: direction, width: '100%', alignItems: 'center', justifyContent: 'space-between' })}>
                 <li>
                     <LinkImage
-                        href="/"
+                        href="/dashboard"
                         // Renderização condicional do SVG preenchido ou vazado
                         Icon={<Icon>{isHomeActive ? <SearchFill /> : <Search />}</Icon>}
                         text='Buscar'

@@ -8,14 +8,22 @@ import { FrameComponent } from "@/components/organisms";
 import { Text ,Heading,Label} from '@/components/atoms/typography';
 import { CardComponent, FormField ,SelectField,CheckboxItem} from '@/components/molecules';
 
-import { api } from '@/services/user/InterceptRequisition'
+import { api } from '@/services/InterceptRequisition';
+import Login from '@/services/user/Login'; // Sem as chaves!
 
-// Importações de Ícones
+import { useRouter } from 'next/navigation';
 import { Star, Edit, Group,} from '@material-symbols-svg/react';
 
 
 
 export default function Runs() {
+
+   interface CredentialsData {
+      email: string;
+      password: string;
+   }
+
+   const router = useRouter();
    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     // 1. Interrompe o recarregamento padrão da página
     e.preventDefault(); 
@@ -24,22 +32,20 @@ export default function Runs() {
     const formData = new FormData(e.currentTarget);
     
     // 3. Transforma os dados em um objeto JavaScript (constante temporária)
-    const data = Object.fromEntries(formData.entries());
+    const credenciais = Object.fromEntries(formData) as unknown as CredentialsData;
     
-    console.log("Dados prontos para envio:", data);
+    const sucess = await Login(credenciais);
 
     // 4. Envia para o fetch
-    try {
-      
-
-
-      if (response.ok) {
-        console.log("Sucesso!");
-      }
-      
-    } catch (error) {
-      console.error("Erro ao enviar:", error);
+   
+    if (sucess) {
+      // Se deu certo, muda de página limpando o histórico da WebView
+      router.replace('/dashboard');
+    } else {
+      // Se deu errado, exibe um alerta ou atualiza um estado de erro na tela
+      alert('E-mail ou senha incorretos.');
     }
+  
   };
  return(
     <Flex width='full' height={'100%'}  justifyContent='center' direction={'column'} padding={'4'} gap='4'>
@@ -49,20 +55,17 @@ export default function Runs() {
          <form action="" onSubmit={handleSubmit}>
             <FormField 
               id="Email" 
-              label="Email" 
+              label="Email"
+              name="email"
               placeholder="Digite seu email..." 
             />
             <FormField 
               id="Password" 
               label="Senha" 
-              placeholder="Digite sua Senha" 
+              placeholder="Digite sua Senha"
+              name='password'
             />
-            <CheckboxItem
-            label='Manter-me ativo'
-            id='active'
-            type='checkbox'
             
-            />
             <Button width='full' type='submit'>
                Entrar
             </Button>

@@ -1,3 +1,4 @@
+"use client"
 import React from "react";
 import { flex } from '../../styled-system/patterns'; 
 import { css } from '../../styled-system/css'; 

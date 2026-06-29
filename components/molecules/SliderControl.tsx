@@ -1,4 +1,4 @@
-// SliderControl.tsx
+"use client"
 import { Box, Flex } from '@/styled-system/jsx';
 import { Label,Text  } from '@/components/atoms/typography';
 import { RangeSlider } from '@/components/atoms/data';

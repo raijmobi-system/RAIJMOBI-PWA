@@ -1,3 +1,4 @@
+"use client"
 import { Text,Label,Heading } from '@/components/atoms/typography';
 import { Switch,Textarea,Checkbox,Input } from '@/components/atoms/data'
 

@@ -1,11 +1,15 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
-
+import {useRouter} from 'next/navigation'
 const GATEWAY_URL = 'http://localhost:8000';
 
 // 1. Cria uma instância personalizada do Axios
 export const api = axios.create({
   baseURL: GATEWAY_URL,
+  headers: {
+    'Accept': 'application/json', // <--- Isso força o Django a sempre responder JSON
+    'Content-Type': 'application/json',
+  },
 });
 
 // 2. INTERCEPTOR DE REQUISIÇÃO: Garante que toda requisição vai com o Access Token atualizado
@@ -24,7 +28,6 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// 3. INTERCEPTOR DE RESPOSTA: Onde a mágica do Refresh Token acontece
 api.interceptors.response.use(
   (response) => response, // Se a requisição deu certo, só passa adiante
   async (error: AxiosError) => {

@@ -1,1 +1,1 @@
-export * from './InterceptRequisition'
+export * from '../InterceptRequisition'

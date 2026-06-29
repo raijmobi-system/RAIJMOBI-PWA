@@ -4,6 +4,10 @@ const config: CapacitorConfig = {
   appId: 'com.raijmobi.app',
   appName: 'raijmobi',
   webDir: 'out',
+  server: {
+    cleartext: true ,
+    androidScheme: 'http' // <--- ADICIONE ESTA LINHA
+  },
   plugins: {
     // Exemplo: Configurando o plugin nativo de Splash Screen (Tela de Abertura)
     SplashScreen: {

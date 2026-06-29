@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 
-const GATEWAY_URL = 'http://localhost:8000';
+const GATEWAY_URL = 'http://10.0.0.17:8000';
 
 interface CredentialData {
   email: string;
@@ -14,12 +14,21 @@ interface AuthResponse {
 }
 
 
-async function AuthenticateUser(credenciais: CredentialData): Promise<String | undefined> {
+export default async function Login(credenciais: CredentialData): Promise<string | undefined> {
   try {
+    console.log("Dados que vão para o Kong:", credenciais,{
+
+    });
     // 1. Repare nas CRASES ( ` ) na URL para permitir a interpolação com ${GATEWAY_URL}
     // 2. Passamos a interface <AuthResponse> para o Axios tipar o 'resposta.data'
-    const response = await axios.post<AuthResponse>(`${GATEWAY_URL}/api/login/`, credenciais);
-    const tokens = response.data;
+const response = await axios.post(`${GATEWAY_URL}/api/login/`, credenciais, {
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+  }
+});    const tokens = response.data;
+
+    console.log('✅ A REDE FUNCIONOU! Tokens recebidos:', tokens);
 
     await SecureStoragePlugin.set({ key: 'access_token', value: tokens.access });
     await SecureStoragePlugin.set({ key: 'refresh_token', value: tokens.refresh });
