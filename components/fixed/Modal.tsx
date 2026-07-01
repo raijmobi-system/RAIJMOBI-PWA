@@ -63,7 +63,7 @@ export default function Modal({ isOpen, onClose, children, title }: ModalProps) 
           shadow: "xl",
           maxH: "100vh",
           maxW: "100vw",
-          w: "auto",
+          w: "100%",
           overflow: "auto",
         })}
       >

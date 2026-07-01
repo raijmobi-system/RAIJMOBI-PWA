@@ -3,8 +3,11 @@ import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import {useRouter} from 'next/navigation'
 const GATEWAY_URL = 'http://localhost:8000';
 
+
+
 // 1. Cria uma instância personalizada do Axios
 export const api = axios.create({
+  
   baseURL: GATEWAY_URL,
   headers: {
     'Accept': 'application/json', // <--- Isso força o Django a sempre responder JSON
@@ -75,7 +78,7 @@ api.interceptors.response.use(
         // Redireciona o usuário para a tela de Login
         // Se estiver usando React Navigation (Expo/React Native) ou Ionic/Angular Router:
         // Exemplo para a Web/Capacitor simples:
-        window.location.href = '/login'; 
+        window.location.href = 'user/login'; 
         // Se estiver usando uma biblioteca de rotas específica do seu framework, dispare a navegação dela aqui
         
         return Promise.reject(refreshError);
