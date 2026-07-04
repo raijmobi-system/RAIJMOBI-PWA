@@ -44,11 +44,13 @@ export interface Reservation {
 
 // Filtros aceitos pelo django-filters
 export interface RideFilterParams {
-  origin?: string;
-  destination?: string;
-  status?: string;
-  price_min?: number;
+  origin?: string;             
+  destination?: string;       
+  origin_city?: string;        
+  origin_state?: string;       
+  destination_city?: string;
+  destination_state?: string;
+  start_time_after?: string;
   price_max?: number;
-  vehicle_type?: string;
-  [key: string]: any; // Permite buscas dinâmicas se necessário
+  // ... outros filtros que você já possua
 }

@@ -1,30 +1,73 @@
+"use client";
+
+import React from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { useRouter } from 'next/navigation';
 import { Box, Flex, Grid } from '@/styled-system/jsx';
 import { Text } from '@/components/atoms/typography';
 import { FilterCard } from '@/components/organisms/FilterCard';
 import { FormField } from '@/components/molecules/FormFIeld';
 import { SelectField } from '@/components/molecules/SelectField';
 import { SliderControl } from '@/components/molecules/SliderControl';
-import { CheckboxItem } from '@/components/molecules/CheckboxItem';
 import { AISearchInput } from '@/components/molecules/AISearchInput';
+import { Button } from '@/components/atoms/action';
+
+export interface SearchFormInputs {
+  origem: string;
+  destino: string;
+  raio: number;
+  data: string;
+  horario: string;
+}
 
 export const SearchFilterForm = () => {
+  const router = useRouter();
+
+  const { control, handleSubmit } = useForm<SearchFormInputs>({
+    defaultValues: {
+      origem: '',
+      destino: '',
+      data: '',
+      horario: 'qualquer',
+    },
+  });
+
+  const onSubmit = (data: SearchFormInputs) => {
+    const searchParams = new URLSearchParams();
+
+    // Mapeia os campos preenchidos para a URL
+    if (data.origem.trim()) {
+      searchParams.append('origin', data.origem.trim());
+    }
+    if (data.destino.trim()) {
+      searchParams.append('destination', data.destino.trim());
+    }
+    if (data.data) {
+      searchParams.append('start_time_after', data.data);
+    }
+    if (data.raio) {
+      searchParams.append('raio', String(data.raio));
+    }
+
+    // Redireciona para a página do Passo 4 mantendo os parâmetros
+    router.push(`/search-results?${searchParams.toString()}`);
+  };
+
   return (
-    <Box 
-      display="flex" 
-      flexDirection="column" 
-      height="100%" 
-      maxHeight="800px" 
-      bg="white"
+    <form 
+      onSubmit={handleSubmit(onSubmit)} 
+      style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
     >
       <Box 
         flex="1" 
         overflowY="auto" 
-         
         display="flex" 
         flexDirection="column" 
         gap="4"
+        maxHeight="800px" 
+        bg="white"
       >
-        
+        {/* IA Search */}
         <FilterCard isFeatured icon="🧠">
           <Text weight="medium" css={{ mb: '4' }}>Pesquisa Inteligente com IA</Text>
           <AISearchInput />
@@ -33,68 +76,104 @@ export const SearchFilterForm = () => {
           </Text>
         </FilterCard>
 
-        {/* 2. Seção: Trajeto */}
+        {/* Trajeto */}
         <FilterCard icon="📍" title="Trajeto">
           <Box display="flex" flexDirection="column" gap="4">
-            <FormField 
-              id="origem" 
-              label="Origem" 
-              placeholder="Cidade de partida" 
+            <Controller
+              name="origem"
+              control={control}
+              render={({ field }) => (
+                <FormField 
+                  {...field}
+                  id="origem" 
+                  label="Origem (Cidade ou Estado)" 
+                  placeholder="Ex: Campinas ou SP" 
+                />
+              )}
             />
-            <FormField 
-              id="destino" 
-              label="Destino" 
-              placeholder="Cidade de destino" 
+
+            <Controller
+              name="destino"
+              control={control}
+              render={({ field }) => (
+                <FormField 
+                  {...field}
+                  id="destino" 
+                  label="Destino (Cidade ou Estado)" 
+                  placeholder="Ex: São Paulo ou RJ" 
+                />
+              )}
             />
+
             <Box mt="2">
-              <SliderControl 
-                id="raio"
-                label="Raio de busca (km)"
-                minLabel="0 km"
-                maxLabel="100 km"
-                currentValue="20 km"
+              <Controller
+                name="raio"
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <SliderControl 
+                    id="raio"
+                    label="Raio de busca"
+                    minLabel="0 km"
+                    maxLabel="100 km"
+                    currentValue={`${value} km`}
+                    value={value}
+                    onChange={(e) => onChange(Number((e.target as HTMLInputElement).value))}
+                  />
+                )}
               />
             </Box>
           </Box>
         </FilterCard>
 
-        {/* 3. Seção: Data e Hora */}
+        {/* Data e Hora */}
         <FilterCard icon="📅" title="Data e Hora">
           <Grid columns={2} gap="4">
-            <FormField 
-              id="data" 
-              type="date" // O tipo date aciona o calendário nativo do navegador
-              label="Data" 
+            <Controller
+              name="data"
+              control={control}
+              render={({ field }) => (
+                <FormField 
+                  {...field}
+                  id="data" 
+                  type="date" 
+                  label="Data" 
+                />
+              )}
             />
-            <SelectField 
-              id="horario" 
-              label="Horário" 
-              options={[
-                { value: 'qualquer', label: 'Qualquer' },
-                { value: 'manha', label: 'Manhã (06h - 12h)' },
-                { value: 'tarde', label: 'Tarde (12h - 18h)' },
-                { value: 'noite', label: 'Noite (18h - 00h)' },
-              ]} 
+
+            <Controller
+              name="horario"
+              control={control}
+              render={({ field }) => (
+                <SelectField 
+                  {...field}
+                  id="horario" 
+                  label="Horário" 
+                  options={[
+                    { value: 'qualquer', label: 'Qualquer' },
+                    { value: 'manha', label: 'Manhã (06h - 12h)' },
+                    { value: 'tarde', label: 'Tarde (12h - 18h)' },
+                    { value: 'noite', label: 'Noite (18h - 00h)' },
+                  ]} 
+                />
+              )}
             />
           </Grid>
         </FilterCard>
-
-        {/* 4. Seção: Preço e Vagas */}
-        
-
-        
       </Box>
 
-      {/* Rodapé Fixo com Botões de Ação */}
+      {/* Rodapé Fixo */}
       <Flex 
         padding="6" 
         gap="4" 
         borderTopWidth="1px" 
         borderColor="gray.200" 
         bg="white"
+        mt="auto"
       >
         <Box 
-          as="button" 
+          as="button"
+          type="button"
           flex="1" 
           height="12" 
           borderRadius="md" 
@@ -104,23 +183,24 @@ export const SearchFilterForm = () => {
           color="gray.700" 
           fontWeight="medium"
           cursor="pointer"
+          onClick={() => router.back()}
         >
           Cancelar
         </Box>
         
-        <Box 
-          as="button" 
+        <Button
+          type="submit"
           flex="1" 
           height="12" 
           borderRadius="md" 
-          bg="#547812" // O verde exato do seu design
+          bg="#547812" 
           color="white" 
           fontWeight="medium"
           cursor="pointer"
         >
           Pesquisar
-        </Box>
+        </Button>
       </Flex>
-    </Box>
+    </form>
   );
 };

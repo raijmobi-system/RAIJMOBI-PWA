@@ -8,6 +8,8 @@ import { usePathname } from 'next/navigation';
 
 import Navigation from "@/components/fixed/Navigation";
 import DynamicHeader from "@/components/fixed/DynamicHeader"; 
+import { useEffect } from "react";
+import { initSocialLogin } from "@/services/user/SocialLoginProvider";
 
 const manrope = Manrope({
   subsets: ['latin'],
@@ -21,7 +23,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  
+  useEffect(() => {
+    initSocialLogin().catch(console.error);
+  }, []);
   // 1. VERIFICAÇÕES DE ROTA
   const isChatPage = pathname?.includes('/chat/conversation');
   const isUserPage = pathname?.startsWith('/user'); 

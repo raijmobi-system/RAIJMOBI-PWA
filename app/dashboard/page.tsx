@@ -78,32 +78,20 @@ export default function Dashboard() {
         />
       }
       extraContent={
-        <IconButton variant='detail' size='full' className={css({margin: '0.75rem'})}>
-          <Text color='white'>Participar</Text>
-        </IconButton>
+        <Flex>
+          <IconButton 
+            variant='detail' 
+            size='full' 
+            className={css({margin: '0.75rem'})} 
+            onClick={() => setActiveModal('ride_details')}
+          >
+            <Text color='white'>Participar</Text>
+          </IconButton>
+        </Flex>
       }
     />,
-    <CardComponent
-      key="ride-2"
-      direction='column'
-      fullWidth={true}
-      hasPadding={false}
-      Image={<img src='trajeto.png' alt="Trajeto" className={css({ height: '118px', w: '100%', maxH: '118px', objectFit: 'cover'})} />}
-      content={
-        <RideSummary 
-          title="Kiwidi Express - Mossoró"
-          seats="4/6 lugares"
-          price="R$ 49,99"
-          origin="Pau dos Ferros"
-          destination="Rafael Fernandes"
-        />
-      }
-      extraContent={
-        <IconButton variant='detail' size='full' className={css({margin: '0.75rem'})}>
-          <Text color='white'>Participar</Text>
-        </IconButton>
-      }
-    />,
+    
+    
     <CardComponent
       key="ride-3"
       direction='column'

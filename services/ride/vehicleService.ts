@@ -16,6 +16,6 @@ export const VehicleService = {
   // Deixando os outros preparados para o futuro
   getAll: () => api.get('api/ride/vehicles/'),
   getById: (id: string) => api.get(`api/ride/vehicles/${id}/`),
-  update: (id: string, data: Partial<VehiclePayload>) => api.patch(`/ride/vehicles/${id}/`, data),
+  update: (id: string, data: Partial<VehiclePayload>) => api.patch(`api/ride/vehicles/${id}/`, data),
   delete: (id: string) => api.delete(`api/ride/vehicles/${id}/`)
 };

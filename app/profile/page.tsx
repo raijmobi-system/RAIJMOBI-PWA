@@ -318,9 +318,9 @@ export default function Perfil() {
             <div className={css({ "& > div": { backgroundColor: "gray.50", border: "none" } })}>
               
               {loadingVehicles ? (
-                <Text color="gray.500">Carregando veículos...</Text>
+                <Text color="muted">Carregando veículos...</Text>
               ) : veiculosLista.length === 0 ? (
-                <Text color="gray.500">Nenhum veículo cadastrado.</Text>
+                <Text color="muted">Nenhum veículo cadastrado.</Text>
               ) : (
                 // Renderiza exatamente os 2 primeiros veículos retornados da API
                 veiculosLista.slice(0, 2).map((item) => (

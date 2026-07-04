@@ -45,7 +45,7 @@ export default function SearchComponent({
         <Search />
       </Icon>
       
-      <Input placeholder={placeholder} />
+      <Input placeholder={placeholder} onClick={onFilterClick}/>
 
       {/* 2. Renderização condicional para o botão de IA */}
       {showAI && aiIcon && (
