@@ -1,5 +1,11 @@
 // /types/api.ts
 
+export interface Location {
+  id?: string;
+  city?: string;
+  state: string;
+}
+
 export interface UserClient {
   id: string;
   name: string;
@@ -24,8 +30,8 @@ export interface Ride {
   id?: string;
   uuid?: string;
   vehicle: string; // ID do veículo
-  origin: string;
-  destination: string;
+  origin: Location;
+  destination: Location;
   start_time: string;
   expected_arrival: string;
   available_seats: number;

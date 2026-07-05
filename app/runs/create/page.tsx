@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Flex } from '@/styled-system/jsx';
 import { css } from "@/styled-system/css"; 
@@ -38,7 +38,8 @@ const ESTADOS_BR = [
   { uf: 'SP', nome: 'São Paulo' }, { uf: 'SE', nome: 'Sergipe' }, { uf: 'TO', nome: 'Tocantins' }
 ];
 
-export default function CreateRidePage() {
+// 1. Renomeamos seu componente original para CreateRideContent
+function CreateRideContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -332,7 +333,7 @@ export default function CreateRidePage() {
                 placeholder="Ex: 45.00" 
                 defaultValue={rideData?.price || ""}
                 required={!isEditing}
-                disabled={isEditing} // 🔒 BLOQUEIO NO FRONTEND (causava o bug resolvido acima)
+                disabled={isEditing} 
                 icon={<Payments className={css({ color: "muted", mr: "2" })} />} 
               />
             </Flex>
@@ -361,5 +362,14 @@ export default function CreateRidePage() {
         </form>
       </FrameComponent>
     </Flex>
+  );
+}
+
+// 2. Exportamos como padrão o componente encapsulado no Suspense
+export default function CreateRidePage() {
+  return (
+    <Suspense fallback={<Flex p="6" justify="center"><Text color="muted">Carregando...</Text></Flex>}>
+      <CreateRideContent />
+    </Suspense>
   );
 }

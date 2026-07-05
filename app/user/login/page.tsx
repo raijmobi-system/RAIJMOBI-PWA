@@ -62,7 +62,11 @@ export default function Runs() {
         },
       });
 
-      const idToken = respostaGoogle.result.idToken;
+      if (respostaGoogle.result.responseType !== 'online') {
+  throw new Error('Google Login retornou modo offline.');
+}
+
+const idToken = respostaGoogle.result.idToken;
 
       if (!idToken) {
         throw new Error('Não foi possível obter o token do Google.');

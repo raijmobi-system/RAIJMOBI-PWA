@@ -20,6 +20,10 @@ export function useGoogleAuth() {
 
       // 2. Extrai o idToken retornado de forma nativa
       // No Google, o token JWT que precisamos mandar pro Django fica em idToken
+      if (respostaGoogle.result.responseType !== 'online') {
+        throw new Error('Login do Google retornou modo offline.');
+      }
+
       const idToken = respostaGoogle.result.idToken;
 
       if (!idToken) {

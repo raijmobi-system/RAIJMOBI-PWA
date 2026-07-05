@@ -19,6 +19,7 @@ import Modal from "@/components/fixed/Modal";
 // Serviços Reais da API
 import { RideService } from '@/services/ride/rideService';
 import { ReservationService } from '@/services/ride/reservationService';
+import { StripePaymentServiceFront } from '@/services/stripe/stripeService';
 
 // Ícones do Material Symbols
 import { 
@@ -63,6 +64,7 @@ interface RideDetailsProps {
 
 const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel }: RideDetailsProps) => {
   const [canceling, setCanceling] = useState(false);
+  const [pagando, setPagando] = useState(false);
 
   // Na aba passageiro, os dados visuais da carona estão dentro de item.ride (objeto)
   const ride = role === 'passageiro' ? item.ride : item;
@@ -72,7 +74,7 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel 
   const isLocked = ['em_andamento', 'finalizada'].includes(ride?.status);
   const isAlreadyCanceled = reservationStatus === 'cancelada';
 
-  // EXECUÇÃO REAL NA API VIA PATCH
+  // EXECUÇÃO REAL NA API VIA PATCH (CANCELAMENTO)
   const handleCancelParticipation = async () => {
     if (!reservationId) return;
     
@@ -81,11 +83,10 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel 
     if (confirm) {
       setCanceling(true);
       try {
-        // Envia requisição real PATCH para /api/ride/reservations/{id}/ com { status: 'cancelada' }
         await ReservationService.updateStatus(String(reservationId), 'cancelada');
         alert("Participação cancelada com sucesso!");
         onClose();
-        onSuccessCancel(); // Recarrega os dados diretamente da API
+        onSuccessCancel(); 
       } catch (error: any) {
         console.error("Erro real na API ao cancelar reserva:", error);
         const errorMsg = error.response?.data?.detail || JSON.stringify(error.response?.data) || "Erro ao conectar com o servidor.";
@@ -96,6 +97,28 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel 
     }
   };
 
+  // EXECUÇÃO DO FLUXO NATIVO DE PAGAMENTO VIA STRIPE
+  const handleFazerPagamento = async () => {
+    if (!reservationId) return;
+
+    setPagando(true);
+    try {
+      const sucesso = await StripePaymentServiceFront.executarPagamento(reservationId);
+      
+      if (sucesso) {
+        alert("✅ Pagamento aprovado com sucesso!");
+        onClose();
+        onSuccessCancel(); // Atualiza a tela de corridas/reservas
+      }
+    } catch (error: any) {
+      console.error("Erro no checkout:", error);
+      const msg = error.response?.data?.error || error.message || "Não foi possível iniciar o pagamento.";
+      alert(`Erro: ${msg}`);
+    } finally {
+      setPagando(false);
+    }
+  };
+
   if (!ride || typeof ride !== 'object') return null;
 
   return (
@@ -103,7 +126,7 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel 
       <Flex direction='row' justifyContent='space-between'>
         <Flex className={css({ background: '#f0f7e5' })} padding='4px 10px' borderRadius='10px' gap='10px'>
           <Percent className={css({ color: '#547812', fontSize: '20px' })} />
-          <Text color='special' weight="bold">#{ride.id?.toString().padStart(3, '0') || '000'}</Text>
+          <Text color='special' weight="bold">#{ride.status?.toString().padStart(3, '0') || '000'}</Text>
         </Flex>
         <Text fontSize='20px' color='special' weight='bold'>R$ {ride.price || '0,00'}</Text>
       </Flex>
@@ -113,7 +136,6 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel 
         backgroundColor="transparent"
         direction='row'
         fullWidth={true}
-        
         Image={
           <img src='https://i.pravatar.cc/150?img=47' alt="Motorista" className={css({ w: '50px', h: '50px', borderRadius: 'full' })} />
         }
@@ -147,7 +169,7 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel 
           <Button 
             width='full' 
             onClick={handleCancelParticipation}
-            disabled={isAlreadyCanceled || canceling || isLocked}
+            disabled={isAlreadyCanceled || canceling || isLocked || pagando}
             className={css({ 
               bg: isAlreadyCanceled || isLocked ? 'gray.100' : 'red.50', 
               border: '1px solid', 
@@ -160,6 +182,20 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel 
           </Button>
         )}
       </Flex>
+
+      {/* 🌟 O BOTÃO SÓ APARECE SE FOR PASSAGEIRO, NÃO ESTIVER CANCELADO E O STATUS FOR PENDENTE */}
+{role === 'passageiro' && !isAlreadyCanceled && reservationStatus === 'pendente' && (
+  <Button
+    width="full"
+    onClick={handleFazerPagamento}
+    disabled={pagando || isLocked || canceling}
+    className={css({ bg: pagando || isLocked ? 'muted' : '#547812' })}
+  >
+    <Text color="white" weight='bold'>
+      {pagando ? 'Abrindo Pagamento...' : isLocked ? 'Carona Encerrada' : 'Fazer Pagamento'}
+    </Text>
+  </Button>
+)}
     </Flex>
   );
 };
@@ -198,11 +234,9 @@ export default function Runs() {
       let response;
 
       if (tab === 'motorista') {
-        // Consulta real: GET /api/ride/rides/?driver={userId}
         if (userId) params.driver = userId;
         response = await RideService.getAll(params);
       } else {
-        // Consulta real: GET /api/ride/reservations/?passenger={userId}
         if (userId) params.passenger = userId;
         response = await ReservationService.getAll(params);
       }
@@ -225,13 +259,15 @@ export default function Runs() {
     setItems([]);
     fetchItems(1, activeTab);
   };
-
+// eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     reloadCurrentTab();
   }, [activeTab]);
 
   useEffect(() => {
     if (page > 1) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchItems(page, activeTab);
     }
   }, [page]);
@@ -305,12 +341,9 @@ export default function Runs() {
 
           {items.map((item, index) => {
             const isLastElement = items.length === index + 1;
-            
-            // Na aba de passageiros, a viagem real vem em item.ride
             const rideData = activeTab === 'passageiro' ? item.ride : item;
             const displayStatus = activeTab === 'passageiro' ? item.status : item.status;
 
-            // Evita erro visual caso a API retorne apenas uma string UUID em vez de objeto populado
             if (!rideData || typeof rideData !== 'object') return null;
 
             const originStr = typeof rideData.origin === 'object' ? `${rideData.origin.city}, ${rideData.origin.state}` : rideData.origin;

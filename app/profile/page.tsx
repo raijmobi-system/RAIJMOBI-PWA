@@ -247,6 +247,7 @@ export default function Perfil() {
 
   // Chama a API logo que o componente é montado na tela
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchVehicles();
   }, []);
 

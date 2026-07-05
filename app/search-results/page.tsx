@@ -216,6 +216,7 @@ const ResultadosContent = () => {
   }, [originQuery, destinationQuery, searchParams]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchFilteredRides();
   }, [fetchFilteredRides]);
 
@@ -299,6 +300,7 @@ const ResultadosContent = () => {
               }
               content={
                 <RideSummary 
+                
                   title={`Carona - ${ride.destination?.city || 'Destino'}`}
                   seats={`${ride.available_seats} vagas disponíveis`}
                   price={`R$ ${Number(ride.price).toFixed(2)}`}

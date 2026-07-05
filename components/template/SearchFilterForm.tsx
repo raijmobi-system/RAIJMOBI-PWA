@@ -10,6 +10,7 @@ import { FormField } from '@/components/molecules/FormFIeld';
 import { SelectField } from '@/components/molecules/SelectField';
 import { SliderControl } from '@/components/molecules/SliderControl';
 import { AISearchInput } from '@/components/molecules/AISearchInput';
+import { CityAutocomplete } from '@/components/molecules/CityAutocomplete';
 import { Button } from '@/components/atoms/action';
 
 export interface SearchFormInputs {
@@ -20,13 +21,18 @@ export interface SearchFormInputs {
   horario: string;
 }
 
-export const SearchFilterForm = () => {
+interface SearchFilterFormProps {
+  onClose?: () => void;
+}
+
+export const SearchFilterForm: React.FC<SearchFilterFormProps> = ({ onClose }) => {
   const router = useRouter();
 
   const { control, handleSubmit } = useForm<SearchFormInputs>({
     defaultValues: {
       origem: '',
       destino: '',
+      raio: 20,
       data: '',
       horario: 'qualquer',
     },
@@ -35,7 +41,7 @@ export const SearchFilterForm = () => {
   const onSubmit = (data: SearchFormInputs) => {
     const searchParams = new URLSearchParams();
 
-    // Mapeia os campos preenchidos para a URL
+    // Mapeia os campos preenchidos para a URL da API
     if (data.origem.trim()) {
       searchParams.append('origin', data.origem.trim());
     }
@@ -49,8 +55,16 @@ export const SearchFilterForm = () => {
       searchParams.append('raio', String(data.raio));
     }
 
-    // Redireciona para a página do Passo 4 mantendo os parâmetros
+    if (onClose) onClose();
     router.push(`/search-results?${searchParams.toString()}`);
+  };
+
+  const handleCancel = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      router.back();
+    }
   };
 
   return (
@@ -66,6 +80,7 @@ export const SearchFilterForm = () => {
         gap="4"
         maxHeight="800px" 
         bg="white"
+        pb="4"
       >
         {/* IA Search */}
         <FilterCard isFeatured icon="🧠">
@@ -76,18 +91,19 @@ export const SearchFilterForm = () => {
           </Text>
         </FilterCard>
 
-        {/* Trajeto */}
+        {/* Trajeto com Autocomplete Inteligente */}
         <FilterCard icon="📍" title="Trajeto">
           <Box display="flex" flexDirection="column" gap="4">
             <Controller
               name="origem"
               control={control}
-              render={({ field }) => (
-                <FormField 
-                  {...field}
+              render={({ field: { value, onChange } }) => (
+                <CityAutocomplete 
                   id="origem" 
-                  label="Origem (Cidade ou Estado)" 
-                  placeholder="Ex: Campinas ou SP" 
+                  label="Origem (Cidade - Estado)" 
+                  placeholder="Ex: Campinas - SP" 
+                  value={value}
+                  onChange={onChange}
                 />
               )}
             />
@@ -95,12 +111,13 @@ export const SearchFilterForm = () => {
             <Controller
               name="destino"
               control={control}
-              render={({ field }) => (
-                <FormField 
-                  {...field}
+              render={({ field: { value, onChange } }) => (
+                <CityAutocomplete 
                   id="destino" 
-                  label="Destino (Cidade ou Estado)" 
-                  placeholder="Ex: São Paulo ou RJ" 
+                  label="Destino (Cidade - Estado)" 
+                  placeholder="Ex: São Paulo - SP" 
+                  value={value}
+                  onChange={onChange}
                 />
               )}
             />
@@ -173,7 +190,7 @@ export const SearchFilterForm = () => {
       >
         <Box 
           as="button"
-          type="button"
+          
           flex="1" 
           height="12" 
           borderRadius="md" 
@@ -183,7 +200,10 @@ export const SearchFilterForm = () => {
           color="gray.700" 
           fontWeight="medium"
           cursor="pointer"
-          onClick={() => router.back()}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          onClick={handleCancel}
         >
           Cancelar
         </Box>

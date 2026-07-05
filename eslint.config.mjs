@@ -14,7 +14,17 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     
   ]),
-  
+  // Custom rules
+  {
+    files: ["**/*.ts", "**/*.tsx"],
+    rules: {
+      "no-unused-vars": "warn",
+      "react/jsx-uses-react": "off",
+      "react/react-in-jsx-scope": "off",
+      "@typescript-eslint/no-explicit-any": "off"
+    },
+  },
+
 ]);
 
 export default eslintConfig;
