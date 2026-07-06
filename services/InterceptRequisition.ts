@@ -30,6 +30,12 @@ api.interceptors.request.use(
     if (accessToken && config.headers) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
+
+    // 🌟 SE FOR UPLOAD DE ARQUIVO (FormData), REMOVE O JSON GLOBAL:
+    if (config.data instanceof FormData && config.headers) {
+      delete config.headers['Content-Type'];
+    }
+
     return config;
   },
   (error) => Promise.reject(error)

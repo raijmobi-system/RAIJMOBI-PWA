@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from 'react';
-import axios from 'axios'; // 1. Importado axios puro
-import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'; // 2. Importado o storage nativo
+import axios from 'axios';
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import { Flex } from '@/styled-system/jsx';
 import { Button, Link } from '@/components/atoms/action';
 import { Text } from '@/components/atoms/typography';
@@ -41,20 +41,20 @@ export default function Runs() {
   };
 
   // ==========================================
-  // LOGIN NATIVO COM GOOGLE (CORRIGIDO)
+  // LOGIN NATIVO COM GOOGLE
   // ==========================================
   const handleGoogleLogin = async () => {
     setLoadingGoogle(true);
     try {
-      // 1. Limpa tokens velhos do storage nativo para garantir segurança
+      // 1. Limpa tokens velhos do storage nativo para evitar conflitos de sessão anterior
       try {
         await SecureStoragePlugin.remove({ key: 'access_token' });
         await SecureStoragePlugin.remove({ key: 'refresh_token' });
       } catch (e) {
-        // Ignora erro se a chave ainda não existir
+        // Ignora caso as chaves não existam ainda
       }
 
-      // 2. Abre a janela nativa do Android/iOS
+      // 2. Abre a janela nativa de autenticação do Android / iOS
       const respostaGoogle = await SocialLogin.login({
         provider: 'google',
         options: {
@@ -63,42 +63,49 @@ export default function Runs() {
       });
 
       if (respostaGoogle.result.responseType !== 'online') {
-  throw new Error('Google Login retornou modo offline.');
-}
+        throw new Error('Google Login retornou modo offline.');
+      }
 
-const idToken = respostaGoogle.result.idToken;
+      const idToken = respostaGoogle.result.idToken;
 
       if (!idToken) {
         throw new Error('Não foi possível obter o token do Google.');
       }
 
-      // 3. USA AXIOS PURO (Evita o erro 401 causado pelo interceptor injetando token sujo)
-      const response = await axios.post(`${GATEWAY_URL}/api/auth/google/`, { token: idToken }, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
+      // 3. USA AXIOS PURO para evitar o interceptor injetando headers antigos
+      const response = await axios.post(
+  `${GATEWAY_URL}/api/auth/google/`, 
+  { token: idToken }, 
+  {
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': undefined // 🌟 Garante que NENHUM token sujo/antigo será enviado!
+    }
+  }
+);
       
       const data = response.data;
 
-      // 4. Salva no SecureStoragePlugin (Igual ao Login.ts)
+      // 4. Salva no SecureStoragePlugin
       await SecureStoragePlugin.set({ key: 'access_token', value: data.access });
       await SecureStoragePlugin.set({ key: 'refresh_token', value: data.refresh });
 
       console.log('✅ Login via Google efetuado e tokens salvos com segurança!');
 
-      // 5. Redirecionamento
+      // 🌟 5. O "PASSO 1": A DECISÃO DE REDIRECIONAMENTO
       if (data.is_new_user) {
-        router.replace('/onboarding/completar-perfil');
+        // Usuário novo! O Django criou a conta base na tabela Usuario mas ainda falta o Perfil (CPF/Tel).
+        router.replace('/user/complete-profile');
       } else {
+        // Usuário antigo com perfil já cadastrado! Vai direto pro app.
         router.replace('/dashboard');
       }
 
     } catch (error: any) {
       console.error('Erro no login nativo com Google:', error);
       if (axios.isAxiosError(error)) {
-        alert(`Erro na API: ${JSON.stringify(error.response?.data || error.message)}`);
+        alert(`Erro na API: ${JSON.stringify(error.response?.data?.detail || error.response?.data || error.message)}`);
       } else {
         alert('Falha ao realizar login com Google. Tente novamente.');
       }

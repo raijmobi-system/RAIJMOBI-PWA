@@ -1,9 +1,9 @@
 "use client";
 
-import { useState ,useEffect} from 'react';
+import { useState } from 'react';
 import { Flex } from '@/styled-system/jsx';
 import { SearchComponent } from '@/components/organisms';
-import { Tune, WandStars, PercentDiscount, VerifiedUser } from '@material-symbols-svg/react';
+import { Tune, PercentDiscount, VerifiedUser } from '@material-symbols-svg/react';
 import { Icon, Avatar } from '@/components/atoms/presentation';
 import { Text } from '@/components/atoms/typography';
 import { Button, IconButton } from '@/components/atoms/action';
@@ -12,13 +12,11 @@ import { css } from "@/styled-system/css";
 import Modal from '@/components/fixed/Modal'; 
 import RideSummary from '@/components/template/RideSummary';
 import CarouselView from '@/components/organisms/CarouselView'; 
-import { SearchFilterForm } from '@/components/template/SearchFilterForm'
-import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
+import { SearchFilterForm } from '@/components/template/SearchFilterForm';
 import { useRouter } from 'next/navigation';
 
 type ModalType = 'none' | 'filter' | 'ride_details';
 
-// 2. Extraímos o conteúdo antigo do Modal para um componente limpo e isolado
 const RideDetailsContent = ({ onClose }: { onClose: () => void }) => {
   return (
     <Flex direction="column" gap="4">
@@ -56,8 +54,8 @@ const RideDetailsContent = ({ onClose }: { onClose: () => void }) => {
 };
 
 export default function Dashboard() {
-  // 3. O estado agora guarda "qual" modal está aberto, e não apenas se está aberto
   const [activeModal, setActiveModal] = useState<ModalType>('none');
+  const router = useRouter();
 
   const closeModal = () => setActiveModal('none');
 
@@ -90,10 +88,8 @@ export default function Dashboard() {
         </Flex>
       }
     />,
-    
-    
     <CardComponent
-      key="ride-3"
+      key="ride-2"
       direction='column'
       fullWidth={true}
       hasPadding={false}
@@ -127,16 +123,14 @@ export default function Dashboard() {
     if (activeModal === 'ride_details') return 'Kiwidi Express - Natal';
     return '';
   };
-  const router = useRouter();
+
   return (
     <Flex aria-roledescription='decorative' direction="column" gap="4">
-     
       <SearchComponent 
         placeholder="De {Origem} para {Destino}..."
         showFilter={true}
         showAI={true}
         filterIcon={<Tune />}
-        // 6. Você precisará garantir que o SearchComponent receba e dispare essa prop ao clicar no ícone Tune
         onFilterClick={() => setActiveModal('filter')} 
       />
 
@@ -150,21 +144,19 @@ export default function Dashboard() {
         items={rideCards}
       />
 
-      {/* 7. O Modal agora reage ao estado dinâmico e injeta o conteúdo correspondente */}
       <Modal 
         isOpen={activeModal !== 'none'} 
         onClose={closeModal}
         title={getModalTitle()}
       >
         {activeModal === 'filter' && (
-          <SearchFilterForm />
+          <SearchFilterForm onClose={closeModal} />
         )}
 
         {activeModal === 'ride_details' && (
           <RideDetailsContent onClose={closeModal} />
         )}
       </Modal>
-
     </Flex>
   );
 }

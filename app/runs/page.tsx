@@ -69,7 +69,8 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel 
   // Na aba passageiro, os dados visuais da carona estão dentro de item.ride (objeto)
   const ride = role === 'passageiro' ? item.ride : item;
   const reservationId = role === 'passageiro' ? item.id : null;
-  const reservationStatus = role === 'passageiro' ? item.status : null;
+  // Força minúsculo para evitar erros de case-sensitive
+  const reservationStatus = role === 'passageiro' && item?.status ? String(item.status).toLowerCase() : null;
 
   const isLocked = ['em_andamento', 'finalizada'].includes(ride?.status);
   const isAlreadyCanceled = reservationStatus === 'cancelada';
@@ -184,7 +185,8 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel 
       </Flex>
 
       {/* 🌟 O BOTÃO SÓ APARECE SE FOR PASSAGEIRO, NÃO ESTIVER CANCELADO E O STATUS FOR PENDENTE */}
-{role === 'passageiro' && !isAlreadyCanceled && reservationStatus === 'pendente' && (
+{/* 🌟 O BOTÃO APARECE PARA O PASSAGEIRO SE NÃO ESTIVER CANCELADO E AINDA PENDENTE */}
+{role === 'passageiro' && !isAlreadyCanceled && ['pendente', 'aguardando_pagamento'].includes(reservationStatus || '') && (
   <Button
     width="full"
     onClick={handleFazerPagamento}
