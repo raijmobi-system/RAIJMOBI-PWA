@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Flex } from '@/styled-system/jsx';
 import { css } from "@/styled-system/css"; 
 
@@ -14,9 +14,10 @@ import { Button } from '@/components/atoms/action';
 import { FrameComponent } from "@/components/organisms";
 import { Text } from '@/components/atoms/typography';
 import { CardComponent } from '@/components/molecules';
-import Modal from "@/components/fixed/Modal";
+import Modal from "@/components/fixed/Modal"; 
 
 // Serviços Reais da API
+import { api } from '@/services/InterceptRequisition';
 import { RideService } from '@/services/ride/rideService';
 import { ReservationService } from '@/services/ride/reservationService';
 import { StripePaymentServiceFront } from '@/services/stripe/stripeService';
@@ -63,24 +64,48 @@ interface RideDetailsProps {
 }
 
 const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel }: RideDetailsProps) => {
+  const router = useRouter(); 
+  
   const [canceling, setCanceling] = useState(false);
   const [pagando, setPagando] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false); 
 
-  // Na aba passageiro, os dados visuais da carona estão dentro de item.ride (objeto)
   const ride = role === 'passageiro' ? item.ride : item;
   const reservationId = role === 'passageiro' ? item.id : null;
-  // Força minúsculo para evitar erros de case-sensitive
   const reservationStatus = role === 'passageiro' && item?.status ? String(item.status).toLowerCase() : null;
 
-  const isLocked = ['em_andamento', 'finalizada'].includes(ride?.status);
+  const isLocked = ['em_andamento', 'finalizada'].includes(ride?.status?.toLowerCase());
   const isAlreadyCanceled = reservationStatus === 'cancelada';
 
-  // EXECUÇÃO REAL NA API VIA PATCH (CANCELAMENTO)
+  // LÓGICA DE INICIAR OU TERMINAR CARONA (Apenas Motorista)
+  const handleUpdateRideStatus = async (newStatus: 'em_andamento' | 'finalizada') => {
+    if (!ride?.id) return;
+
+    const confirmMessage = newStatus === 'em_andamento' 
+      ? "Quer mesmo começar essa carona?" 
+      : "Quer mesmo terminar essa carona?";
+
+    if (window.confirm(confirmMessage)) {
+      setUpdatingStatus(true);
+      try {
+        await RideService.update(String(ride.id), { status: newStatus });
+        alert(`Carona ${newStatus === 'em_andamento' ? 'iniciada' : 'finalizada'} com sucesso!`);
+        onClose();
+        onSuccessCancel(); 
+      } catch (error) {
+        console.error("Erro ao atualizar status da carona:", error);
+        alert("Não foi possível atualizar o status da carona. Tente novamente.");
+      } finally {
+        setUpdatingStatus(false);
+      }
+    }
+  };
+
+  // CANCELAMENTO DE RESERVA (Passageiro)
   const handleCancelParticipation = async () => {
     if (!reservationId) return;
     
     const confirm = window.confirm("Deseja realmente cancelar sua participação nesta carona? Suas vagas serão liberadas no sistema.");
-    
     if (confirm) {
       setCanceling(true);
       try {
@@ -98,18 +123,17 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel 
     }
   };
 
-  // EXECUÇÃO DO FLUXO NATIVO DE PAGAMENTO VIA STRIPE
+  // FLUXO DE PAGAMENTO STRIPE (Passageiro)
   const handleFazerPagamento = async () => {
     if (!reservationId) return;
 
     setPagando(true);
     try {
       const sucesso = await StripePaymentServiceFront.executarPagamento(reservationId);
-      
       if (sucesso) {
         alert("✅ Pagamento aprovado com sucesso!");
         onClose();
-        onSuccessCancel(); // Atualiza a tela de corridas/reservas
+        onSuccessCancel(); 
       }
     } catch (error: any) {
       console.error("Erro no checkout:", error);
@@ -155,17 +179,71 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel 
       />
 
       <Flex direction="column" gap="2" mt="2">
+        
+        {/* 🌟 BOTÃO DE MAPA DINÂMICO UNIFICADO E HIGIENIZADO */}
+        <Button 
+          width='full' 
+          onClick={() => {
+            onClose(); 
+            router.push(`/runs/monitoring?id=${ride.id}`);
+          }} 
+          className={css({ bg: '#3b82f6' })} 
+        >
+          <Text color='white' weight='bold'>
+            Acompanhar Rota no Mapa
+          </Text>
+        </Button>
+
         {role === 'motorista' ? (
-          <Button 
-            width='full' 
-            onClick={() => onEditClick(ride)} 
-            disabled={isLocked}
-            className={css({ bg: isLocked ? 'muted' : 'primary' })}
-          >
-            <Text color={isLocked ? 'muted' : 'white'} weight='bold'>
-              {isLocked ? 'Carona Bloqueada para Edição' : 'Editar Carona'}
-            </Text>
-          </Button>
+          <>
+            {['pendente', 'confirmada'].includes(ride.status?.toLowerCase()) && (
+              <>
+                <Button 
+                  width='full' 
+                  onClick={() => handleUpdateRideStatus('em_andamento')} 
+                  disabled={updatingStatus}
+                  className={css({ bg: '#547812' })} 
+                >
+                  <Text color='white' weight='bold'>
+                    {updatingStatus ? 'Iniciando...' : 'Começar Carona'}
+                  </Text>
+                </Button>
+
+                <Button 
+                  width='full' 
+                  onClick={() => onEditClick(ride)} 
+                  disabled={updatingStatus}
+                  variant="outline"
+                  className={css({ borderColor: 'primary' })}
+                >
+                  <Text color='primary' weight='bold'>
+                    Editar Detalhes
+                  </Text>
+                </Button>
+              </>
+            )}
+
+            {ride.status?.toLowerCase() === 'em_andamento' && (
+              <Button 
+                width='full' 
+                onClick={() => handleUpdateRideStatus('finalizada')} 
+                disabled={updatingStatus}
+                className={css({ bg: 'red.500' })} 
+              >
+                <Text color='white' weight='bold'>
+                  {updatingStatus ? 'Finalizando...' : 'Terminar Carona'}
+                </Text>
+              </Button>
+            )}
+
+            {['finalizada', 'cancelada'].includes(ride.status?.toLowerCase()) && (
+              <Button width='full' disabled className={css({ bg: 'gray.200' })}>
+                <Text color='muted' weight='bold'>
+                  Carona {ride.status === 'finalizada' ? 'Finalizada' : 'Cancelada'}
+                </Text>
+              </Button>
+            )}
+          </>
         ) : (
           <Button 
             width='full' 
@@ -178,35 +256,34 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel 
             })}
           >
             <Text color={isAlreadyCanceled || isLocked ? 'muted' : 'white'} weight='bold'>
-              {canceling ? 'Cancelando no servidor...' : isAlreadyCanceled ? 'Reserva Já Cancelada' : isLocked ? 'Viagem em Andamento' : 'Cancelar Participação'}
+              {canceling ? 'Cancelando...' : isAlreadyCanceled ? 'Reserva Já Cancelada' : isLocked ? 'Viagem em Andamento' : 'Cancelar Participação'}
             </Text>
           </Button>
         )}
       </Flex>
 
-      {/* 🌟 O BOTÃO SÓ APARECE SE FOR PASSAGEIRO, NÃO ESTIVER CANCELADO E O STATUS FOR PENDENTE */}
-{/* 🌟 O BOTÃO APARECE PARA O PASSAGEIRO SE NÃO ESTIVER CANCELADO E AINDA PENDENTE */}
-{role === 'passageiro' && !isAlreadyCanceled && ['pendente', 'aguardando_pagamento'].includes(reservationStatus || '') && (
-  <Button
-    width="full"
-    onClick={handleFazerPagamento}
-    disabled={pagando || isLocked || canceling}
-    className={css({ bg: pagando || isLocked ? 'muted' : '#547812' })}
-  >
-    <Text color="white" weight='bold'>
-      {pagando ? 'Abrindo Pagamento...' : isLocked ? 'Carona Encerrada' : 'Fazer Pagamento'}
-    </Text>
-  </Button>
-)}
+      {role === 'passageiro' && !isAlreadyCanceled && reservationStatus === 'pendente' && (
+        <Button
+          width="full"
+          onClick={handleFazerPagamento}
+          disabled={pagando || isLocked || canceling}
+          className={css({ bg: pagando || isLocked ? 'muted' : '#547812' })}
+        >
+          <Text color="white" weight='bold'>
+            {pagando ? 'Abrindo Pagamento...' : isLocked ? 'Carona Encerrada' : 'Fazer Pagamento'}
+          </Text>
+        </Button>
+      )}
     </Flex>
   );
 };
 
-/* =========================================
-   PÁGINA PRINCIPAL: RUNS (INTEGRAÇÃO API)
-========================================= */
-export default function Runs() {
+/* ====================================================
+   CONTEÚDO DA PÁGINA (Isolado para suportar Suspense)
+====================================================== */
+function RunsContent() {
   const router = useRouter();
+  const searchParams = useSearchParams(); 
   
   const [activeTab, setActiveTab] = useState<TabType>('passageiro');
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
@@ -216,8 +293,8 @@ export default function Runs() {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
-  // BUSCA REAL NAS ROTAS DO DJANGO VIA AXIOS INTERCEPTOR
-  const fetchItems = async (pageNumber: number, tab: TabType) => {
+  // 🌟 OTIMIZAÇÃO: Chamadas da API envelopadas em useCallback para evitar loops de re-render
+  const fetchItems = useCallback(async (pageNumber: number, tab: TabType) => {
     setLoading(true);
     try {
       const params: any = { page: pageNumber };
@@ -234,7 +311,6 @@ export default function Runs() {
       }
 
       let response;
-
       if (tab === 'motorista') {
         if (userId) params.driver = userId;
         response = await RideService.getAll(params);
@@ -244,38 +320,59 @@ export default function Runs() {
       }
       
       const newResults = response.data?.results || response.data || [];
-      
       setHasMore(!!response.data?.next);
       setItems(prev => pageNumber === 1 ? newResults : [...prev, ...newResults]);
-
     } catch (error) {
       console.error("Erro ao carregar dados da API real:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const reloadCurrentTab = () => {
+  const reloadCurrentTab = useCallback(() => {
     setPage(1);
     setHasMore(true);
     setItems([]);
     fetchItems(1, activeTab);
-  };
-// eslint-disable-next-line react-hooks/set-state-in-effect
+  }, [fetchItems, activeTab]);
+
+  // 🌟 ESCUTA RETORNO DO STRIPE WEB E CONFIRMA NO BACKEND
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    const verificarPagamentoWeb = async () => {
+      const paymentStatus = searchParams.get('payment');
+      const reservationId = searchParams.get('res');
+
+      if (paymentStatus === 'success' && reservationId) {
+        try {
+          await api.patch(`api/ride/reservations/${reservationId}/`, { status: 'confirmada' });
+          alert("✅ Pagamento aprovado via Web com sucesso!");
+          router.replace('/runs');
+          reloadCurrentTab();
+        } catch (error) {
+          console.error("Erro ao confirmar reserva paga via web:", error);
+        }
+      } else if (paymentStatus === 'cancel') {
+        alert("❌ O pagamento foi cancelado pelo usuário.");
+        router.replace('/runs');
+      }
+    };
+
+    verificarPagamentoWeb();
+  }, [searchParams, router, reloadCurrentTab]);
+
+  useEffect(() => {
+    //eslint-disable-next-line
     reloadCurrentTab();
-  }, [activeTab]);
+  }, [reloadCurrentTab]);
 
   useEffect(() => {
     if (page > 1) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      //eslint-disable-next-line
       fetchItems(page, activeTab);
     }
-  }, [page]);
+  }, [page, fetchItems, activeTab]);
 
   const observer = useRef<IntersectionObserver | null>(null);
-  
   const lastElementRef = useCallback((node: HTMLDivElement | null) => {
     if (loading) return; 
     if (observer.current) observer.current.disconnect();
@@ -336,7 +433,7 @@ export default function Runs() {
           )}
 
           {items.length === 0 && !loading && (
-            <Text color="muted" css={{ textAlign: "center", mt: "4" }}>
+            <Text color="muted" className={css({ textAlign: "center", mt: "4" })}>
               {activeTab === 'motorista' ? 'Você ainda não criou nenhuma carona.' : 'Você não está participando de nenhuma carona.'}
             </Text>
           )}
@@ -387,7 +484,11 @@ export default function Runs() {
         </Flex>
       </FrameComponent>
 
-      <Modal isOpen={!!selectedItem} onClose={closeModal} title={activeTab === 'motorista' ? "Detalhes da Carona" : "Detalhes da Reserva"}>
+      <Modal 
+        isOpen={!!selectedItem} 
+        onClose={closeModal} 
+        title={activeTab === 'motorista' ? 'Detalhes da Carona' : 'Detalhes da Reserva'}
+      >
         {selectedItem && (
           <RideDetailsContent 
             item={selectedItem} 
@@ -400,5 +501,20 @@ export default function Runs() {
       </Modal>
 
     </Flex>
+  );
+}
+
+/* ====================================================
+   EXPORT PRINCIPAL (Com proteção de hidratação e Suspense)
+====================================================== */
+export default function Runs() {
+  return (
+    <Suspense fallback={
+      <Flex justify="center" align="center" height="100vh">
+        <Text color="muted" weight="bold">Sincronizando viagens...</Text>
+      </Flex>
+    }>
+      <RunsContent />
+    </Suspense>
   );
 }

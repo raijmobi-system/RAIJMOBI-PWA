@@ -1,5 +1,7 @@
 // services/chat_service.ts
-import { api } from './api';
+
+// 🌟 1. Substituímos o import local pela sua API blindada do Capacitor
+import { api } from '@/services/InterceptRequisition';
 
 export interface ChatUser {
   id: string;
@@ -26,26 +28,27 @@ export interface ChatMessageBackend {
 
 class ChatService {
   /**
-   * GET /rooms/
+   * GET /api/chat/rooms/
    */
   async getRooms(): Promise<ChatRoomData[]> {
-    const response = await api.get<ChatRoomData[]>('/rooms/');
+    // 🌟 2. Adicionamos o prefixo /api/chat/ para o Kong rotear corretamente
+    const response = await api.get<ChatRoomData[]>('/api/chat/rooms/');
     return response.data;
   }
 
   /**
-   * GET /rooms/{carona_id}/
+   * GET /api/chat/rooms/{carona_id}/
    */
   async getRoomDetail(caronaId: string): Promise<ChatRoomData> {
-    const response = await api.get<ChatRoomData>(`/rooms/${caronaId}/`);
+    const response = await api.get<ChatRoomData>(`/api/chat/rooms/${caronaId}/`);
     return response.data;
   }
 
   /**
-   * GET /rooms/{carona_id}/messages/
+   * GET /api/chat/rooms/{carona_id}/messages/
    */
   async getHistoricalMessages(caronaId: string): Promise<ChatMessageBackend[]> {
-    const response = await api.get<ChatMessageBackend[]>(`/rooms/${caronaId}/messages/`);
+    const response = await api.get<ChatMessageBackend[]>(`/api/chat/rooms/${caronaId}/messages/`);
     return response.data;
   }
 }

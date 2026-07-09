@@ -58,7 +58,7 @@ const RideDetailsContent = ({
     try {
       // Envia o payload exato que o seu Django espera no ReservationSerializer
       await ReservationService.create({
-        ride: ride.uuid,
+        ride: ride.id,
         passenger: currentUserId,
         requested_seats: requestedSeats,
         status: 'pendente',
@@ -83,7 +83,7 @@ const RideDetailsContent = ({
         <Flex className={css({ background: '#f0f7e5' })} padding="4px 10px" borderRadius="10px" gap="6px">
           <PercentDiscount color="#547812" />
           <Text color="special" weight="bold">
-  #{ride.uuid ? ride.uuid.slice(0, 6).toUpperCase() : 'KIW-000'}
+  #{ride.uuid ? ride.id.slice(0, 6).toUpperCase() : 'KIW-000'}
 </Text>
         </Flex>
         <Box textAlign="right">
@@ -282,7 +282,7 @@ const ResultadosContent = () => {
         <Grid columns={{ base: 1, md: 2, lg: 3 }} gap="6">
           {rides.map((ride) => (
             <CardComponent
-              key={ride.uuid}
+              key={ride.id}
               direction="column"
               fullWidth={true}
               hasPadding={false}

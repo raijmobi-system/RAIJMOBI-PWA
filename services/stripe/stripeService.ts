@@ -1,59 +1,50 @@
+// src/services/stripe/stripeService.ts
+import { Stripe as CapacitorStripe } from '@capacitor-community/stripe';
 import { api } from '@/services/InterceptRequisition';
-import { Stripe, PaymentSheetEventsEnum } from '@capacitor-community/stripe';
-
-interface PaymentSheetResponse {
-  paymentIntent: string;
-  ephemeralKey: string;
-  customer: string;
-  publishableKey?: string;
-}
+import { Capacitor } from '@capacitor/core'; 
 
 export const StripePaymentServiceFront = {
-  // 1. Solicita ao Django os parâmetros seguros de pagamento
-  createPaymentSheetParams: (reservationId: number | string) => 
-    api.post<PaymentSheetResponse>('/api/ride/payment/create-sheet/', { 
-      reservation_id: reservationId 
-    }),
-
-  // 2. Fluxo completo para processar o pagamento nativo no Capacitor
-  executarPagamento: async (reservationId: number | string): Promise<boolean> => {
+  executarPagamento: async (reservationId: string): Promise<boolean> => {
     try {
-      const { data } = await StripePaymentServiceFront.createPaymentSheetParams(reservationId);
+      const isNative = Capacitor.isNativePlatform(); 
 
-      // Busca a chave pública vinda do backend OU do seu arquivo .env.local
-      const chavePublica = data.publishableKey || process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-
-      if (!chavePublica) {
-        throw new Error('Chave pública do Stripe não configurada no .env.local nem retornada pela API.');
-      }
-
-      // Inicializa o plugin nativo
-      await Stripe.initialize({
-        publishableKey: chavePublica,
+      // 1. Faz a chamada passando o parâmetro 'platform' que seu backend espera
+      const { data } = await api.post('api/ride/payment/create-sheet/', { 
+        reservation_id: reservationId,
+        platform: isNative ? 'mobile' : 'web' 
       });
 
-      // Prepara o modal com os dados do cliente e intenção de pagamento
-      await Stripe.createPaymentSheet({
+      // === 🌟 FLUXO EXCLUSIVO PARA WEB (Navegador) ===
+      if (!isNative) {
+        if (data.checkout_url) {
+          // Redireciona o navegador para a página segura de pagamento do Stripe
+          window.location.href = data.checkout_url;
+          return false; 
+        }
+        throw new Error("URL de checkout não retornada pelo servidor.");
+      }
+
+      // === 📱 FLUXO PARA MOBILE NATIVO (Celular) ===
+      await CapacitorStripe.createPaymentSheet({
         paymentIntentClientSecret: data.paymentIntent,
         customerId: data.customer,
         customerEphemeralKeySecret: data.ephemeralKey,
-        merchantDisplayName: 'Carona Solidária',
+        merchantDisplayName: 'Carona Solidária'
       });
 
-      // Abre a interface nativa
-      const result = await Stripe.presentPaymentSheet();
+      // Captura o resultado retornado pelo SDK nativo
+      const { paymentResult } = await CapacitorStripe.presentPaymentSheet();
 
-      // Verificação compatível com o TypeScript e com o retorno nativo do iOS/Android
-      if (
-        result.paymentResult === PaymentSheetEventsEnum.Completed ||
-        (result.paymentResult as unknown as string) === 'completed'
-      ) {
+      // 🌟 SOLUÇÃO: Usamos 'as any' para burlar a limitação de tipo da biblioteca.
+      // Isso elimina o erro "only refers to a type" e o "no overlap" de uma vez só!
+      if ((paymentResult as any) === 'completed') {
+        await api.patch(`api/ride/reservations/${reservationId}/`, { status: 'confirmada' });
         return true;
       }
-      
+
       return false;
     } catch (error) {
-      console.error('❌ Erro no fluxo de pagamento:', error);
+      console.error("Falha no processo universal do Stripe:", error);
       throw error;
     }
   }

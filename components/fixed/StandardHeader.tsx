@@ -4,17 +4,23 @@ import React, { useState, useEffect } from 'react';
 import { css } from "@/styled-system/css"; 
 import { Heading, Text } from '@/components/atoms/typography';
 import { Flex } from '@/styled-system/jsx';
-import { Avatar } from '@/components/atoms/presentation';
+import { Avatar, Icon } from '@/components/atoms/presentation';
 import { Link } from '@/components/atoms/action';
-
 import { api } from '@/services/InterceptRequisition';
+import { NotificationService } from '@/services/notificationService';
+import { Notifications } from '@material-symbols-svg/react'; // 🌟 Ícone importado
+import { useRouter } from 'next/navigation';
 
-// URL base do seu backend/gateway onde os arquivos de mídia estão hospedados
 const GATEWAY_URL = 'http://localhost:8000';
 
 export default function StandardHeader() {
   const [userName, setUserName] = useState('Motorista');
   const [userPhoto, setUserPhoto] = useState('/cliente.jpeg');
+  
+  // 🌟 Estado para as notificações não lidas
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const router = useRouter();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -22,34 +28,38 @@ export default function StandardHeader() {
         const response = await api.get('/api/profile/');
         const data = response.data;
 
-        // 🌟 DEBUG: Abra o console do navegador (F12) para checar o formato exato da resposta
-        console.log("📦 Dados recebidos no Header:", data);
-
-        // 1. Resolve o Nome do Usuário
         const nomeEncontrado = data?.usuario?.nome || data?.nome || data?.name;
         if (nomeEncontrado) {
           const primeiroNome = nomeEncontrado.split(' ')[0];
           setUserName(primeiroNome);
         }
 
-        // 2. Resolve a Foto de Perfil (Tratando caminhos relativos do Django)
         const fotoRecebida = data?.foto || data?.perfil?.foto;
-        
         if (fotoRecebida && typeof fotoRecebida === 'string') {
-          // Se o Django devolveu apenas o caminho relativo (ex: "/media/fotos/img.jpg")
           if (fotoRecebida.startsWith('/')) {
             setUserPhoto(`${GATEWAY_URL}${fotoRecebida}`);
           } else {
-            // Se já veio a URL completa (ex: "http://localhost:8000/media/...")
             setUserPhoto(fotoRecebida);
           }
         }
       } catch (error) {
-        console.error("Erro ao carregar dados do perfil no cabeçalho:", error);
+        console.error("Erro ao carregar perfil:", error);
+      }
+    };
+
+    // 🌟 Busca as notificações para contar as não lidas
+    const fetchNotificationsCount = async () => {
+      try {
+        const notifs = await NotificationService.getAll();
+        const unread = notifs.filter((n: any) => !n.read).length;
+        setUnreadCount(unread);
+      } catch (error) {
+        console.error("Erro ao buscar notificações:", error);
       }
     };
 
     fetchUserProfile();
+    fetchNotificationsCount();
   }, []);
 
   return (
@@ -61,9 +71,8 @@ export default function StandardHeader() {
         display: 'flex', 
         flexDirection: 'row', 
         justifyContent: 'space-between', 
+        alignItems: 'center', // 🌟 Centraliza os itens verticalmente
         px: '6', 
-        backgroundColor: 'rgb(38, 38, 38)', 
-        opacity: '1', 
         maxHeight: '88px' 
       })}
     >
@@ -73,18 +82,53 @@ export default function StandardHeader() {
           size='xl' 
           weight="semibold" 
           color='green' 
-          className={css({ textAlign: 'center', mb: '2' })}
+          className={css({ mb: '1' })}
         >
           Olá, {userName}!
         </Heading>
-        <Text color="white" className={css({ textAlign: 'center' })}>
+        <Text color="white">
           Para onde vai hoje?
         </Text>
       </Flex>
       
-      <Link href="/perfil">
-        <Avatar src={userPhoto} size="fx" />
-      </Link>
+      {/* 🌟 Container do Sino de Notificação e do Avatar */}
+      <Flex direction='row' alignItems='center' gap='5'>
+
+        <Link onClick={() => router.push('/notifications')}>
+          <div className={css({ position: 'relative', cursor: 'pointer', display: 'flex' })}>
+            <Icon size='lg'>
+              <Notifications fill='#547812' />
+            </Icon>
+            
+            {/* Bolinha vermelha com o contador (só aparece se for > 0) */}
+            {unreadCount > 0 && (
+              <div className={css({
+                position: 'absolute', 
+                top: '-4px', 
+                right: '-6px',
+                bg: 'red.500', 
+                color: 'white', 
+                fontSize: '10px',
+                fontWeight: 'bold', 
+                borderRadius: 'full', 
+                width: '18px', 
+                height: '18px',
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                boxShadow: '0 0 0 2px #262626' // Borda escura para destacar
+              })}>
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </div>
+            )}
+          </div>
+        </Link>
+
+        <Link href="/perfil">
+          <Avatar src={userPhoto} size="fx" />
+        </Link>
+
+      </Flex>
     </header>
   );
 }

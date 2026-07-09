@@ -53,7 +53,7 @@ function CreateRideContent() {
         const resVehicles = await VehicleService.getAll();
         const dataVehicles = resVehicles.data?.results || resVehicles.data || [];
         const options = dataVehicles.map((v: any) => ({
-          value: v.uuid,
+          value: v.id,
           label: `${v.model} (${v.plate})`
         }));
         setMyVehicles([{ value: '', label: 'Selecione o veículo...' }, ...options]);

@@ -1,4 +1,5 @@
 // services/chat_socket.ts
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 
 export interface MessageData {
   message: string;
@@ -11,35 +12,33 @@ export type MessageCallback = (data: MessageData) => void;
 
 class ChatSocketService {
   private socket: WebSocket | null = null;
-  // Acessa o container exposto pelo Docker na porta 8002
-  private wsUrlBase = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8002/ws/chat";
+  private wsUrlBase = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws/chat";
 
-  /**
-   * Conecta ao WebSocket do backend baseado na carona correspondente
-   */
-  connect(caronaId: string, onMessageReceived: MessageCallback, onDisconnect?: () => void) {
-    // Evita duplicar conexões se já houver uma ativa
+  // 🌟 1. Transformamos o connect em async
+  async connect(caronaId: string, onMessageReceived: MessageCallback, onDisconnect?: () => void) {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       return;
     }
 
-    // Garante a formatação correta da URL base
     const cleanWsUrl = this.wsUrlBase.endsWith('/') ? this.wsUrlBase.slice(0, -1) : this.wsUrlBase;
     
-    // CORRIGIDO: Coleta o token de autenticação do localStorage
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    // 🌟 2. Coletando o token de forma segura via Capacitor
+    let token = null;
+    try {
+      const { value } = await SecureStoragePlugin.get({ key: 'access_token' });
+      token = value;
+    } catch (e) {
+      console.warn("[WebSocket] Token não encontrado no SecureStorage.");
+    }
     
-    // Injeta o token na query string para que o TokenAuthMiddleware do Django possa validar
     const url = token 
       ? `${cleanWsUrl}/${caronaId}/?token=${token}` 
       : `${cleanWsUrl}/${caronaId}/`;
     
     this.socket = new WebSocket(url);
 
-    this.socket.onopen = () => {
-      console.log(`[WebSocket] Conectado com sucesso à carona: ${caronaId}`);
-    };
-
+    this.socket.onopen = () => console.log(`[WebSocket] Conectado à carona: ${caronaId}`);
+    
     this.socket.onmessage = (event) => {
       try {
         const data: MessageData = JSON.parse(event.data);
@@ -54,36 +53,18 @@ class ChatSocketService {
       if (onDisconnect) onDisconnect();
     };
 
-    this.socket.onerror = (error) => {
-      console.error("[WebSocket] Erro na conexão:", error);
-    };
+    this.socket.onerror = (error) => console.error("[WebSocket] Erro na conexão:", error);
   }
 
-  /**
-   * Envia uma mensagem no formato esperado pelo `receive` do seu consumer.py
-   */
   sendMessage(messageText: string) {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-      console.error("[WebSocket] Não foi possível enviar. Chat desconectado.");
-      return;
-    }
-
-    // O backend espera um JSON contendo {"message": "texto"}
-    const payload = {
-      message: messageText,
-    };
-
-    this.socket.send(JSON.stringify(payload));
+    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
+    this.socket.send(JSON.stringify({ message: messageText }));
   }
 
-  /**
-   * Fecha a conexão ao sair da tela de chat
-   */
   disconnect() {
     if (this.socket) {
       this.socket.close();
       this.socket = null;
-      console.log("[WebSocket] Desconectado manualmente.");
     }
   }
 }

@@ -74,16 +74,16 @@ export default function Runs() {
 
       // 3. USA AXIOS PURO para evitar o interceptor injetando headers antigos
       const response = await axios.post(
-  `${GATEWAY_URL}/api/auth/google/`, 
-  { token: idToken }, 
-  {
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'Authorization': undefined // 🌟 Garante que NENHUM token sujo/antigo será enviado!
-    }
-  }
-);
+        `${GATEWAY_URL}/api/auth/google/`, 
+        { token: idToken }, 
+        {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': undefined // 🌟 Garante que NENHUM token sujo/antigo será enviado!
+          }
+        }
+      );
       
       const data = response.data;
 
@@ -132,12 +132,19 @@ export default function Runs() {
           type='password'
         />
         
+        {/* 🌟 ADICIONADO: Link Esqueci minha senha alinhado à direita */}
+        <Flex justifyContent="flex-end" width="full" marginBottom="4" marginTop="-2">
+          <Link onClick={() => router.push('/user/forgot-password')} color='primary'>
+            Esqueci minha senha
+          </Link>
+        </Flex>
+        
         <Button width='full' type='submit'>
           Entrar
         </Button>
       </form>
 
-      <Flex direction='row'>
+      <Flex direction='row' gap='1' justifyContent='center'>
         <Text> Não tem uma conta? </Text>
         <Link href="/cadastro">Cadastre-se aqui</Link>
       </Flex>

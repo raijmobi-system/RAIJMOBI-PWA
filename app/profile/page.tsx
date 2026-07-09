@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { css } from "@/styled-system/css";
 import { flex } from "@/styled-system/patterns";
 import { Flex } from '@/styled-system/jsx';
+import { useRouter } from "next/navigation";
 
 // Importações dos seus componentes
 import FrameComponent from "@/components/organisms/FrameComponent";
@@ -18,6 +19,7 @@ import { FormField } from '@/components/molecules/FormFIeld';
 
 // Importação do Serviço de Veículos e da Instância da API
 import { VehicleService, VehiclePayload } from '@/services/ride/vehicleService';
+
 import { api } from '@/services/InterceptRequisition';
 
 // Ícones do Material Symbols
@@ -39,6 +41,15 @@ interface VehicleFormProps {
   onClose: () => void;
   vehicleToEdit?: any;
   refreshList: () => void;
+}
+
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
+
+
+async function Logout(router: any) {
+  await SecureStoragePlugin.remove({ key: 'access_token' });
+  await SecureStoragePlugin.remove({ key: 'refresh_token' });
+  router.push('user/login')
 }
 
 const VehicleForm = ({ onClose, vehicleToEdit, refreshList }: VehicleFormProps) => {
@@ -489,6 +500,9 @@ type ModalType = 'none' | 'vehicle' | 'payment' | 'personal_info';
    COMPONENTE PRINCIPAL (PERFIL)
 ========================================= */
 export default function Perfil() {
+
+  const router = useRouter();
+
   const [activeModal, setActiveModal] = useState<ModalType>('none');
   const [selectedVehicle, setSelectedVehicle] = useState<any | null>(null);
 
@@ -650,6 +664,19 @@ export default function Perfil() {
                 href="#"
                 Icon={<Person className={css({ color: "green.700", fontSize: "24px" })} />}
                 text="Informações Pessoais"
+                extraElement={<ChevronRight className={css({ color: "gray.400" })} />}
+              />
+            </div>
+          </div>
+          <div className={flex({ direction: "column", gap: "6", pt: "2" })}>
+            <div 
+              onClick={() => Logout(router)} 
+              className={css({ cursor: "pointer" })}
+            >
+              <LinkImage
+                href="#"
+                Icon={<Person className={css({ color: "red", fontSize: "24px" })} />}
+                text="Logout"
                 extraElement={<ChevronRight className={css({ color: "gray.400" })} />}
               />
             </div>
