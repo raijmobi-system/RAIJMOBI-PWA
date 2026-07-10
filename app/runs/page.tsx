@@ -425,10 +425,11 @@ function RunsContent() {
               onClick={() => router.push('/runs/create')}
               width="full"
               variant="outline"
-              className={css({ border: '2px dashed', borderColor: 'primary', height: '60px' })}
+              
+              className={css({ border: '2px dashed', borderColor: '#547812', height: '60px' })}
             >
               <Add color="#547812"/> 
-              <Text weight="bold" color='primary'>Criar Nova Carona</Text>
+              <Text weight="bold" color='success'>Criar Nova Carona</Text>
             </Button>
           )}
 

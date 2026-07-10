@@ -12,17 +12,18 @@ export type MessageCallback = (data: MessageData) => void;
 
 class ChatSocketService {
   private socket: WebSocket | null = null;
-  private wsUrlBase = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws/chat";
+  private wsUrlBase = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/api/chat";
 
   // 🌟 1. Transformamos o connect em async
+  // Substitua o método connect dentro de services/chat_socket.ts por este:
   async connect(caronaId: string, onMessageReceived: MessageCallback, onDisconnect?: () => void) {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       return;
     }
 
-    const cleanWsUrl = this.wsUrlBase.endsWith('/') ? this.wsUrlBase.slice(0, -1) : this.wsUrlBase;
+    // 1. Corrigindo o endpoint base para apontar exatamente para o ws/chat do Django Channels
+   const cleanWsUrl = "ws://localhost:8000/ws/chat";
     
-    // 🌟 2. Coletando o token de forma segura via Capacitor
     let token = null;
     try {
       const { value } = await SecureStoragePlugin.get({ key: 'access_token' });
@@ -31,10 +32,12 @@ class ChatSocketService {
       console.warn("[WebSocket] Token não encontrado no SecureStorage.");
     }
     
+    // 2. CORREÇÃO DA BARRA: Adicionamos a barra estrita '/' após o ID da carona exigida pelo re_path
     const url = token 
       ? `${cleanWsUrl}/${caronaId}/?token=${token}` 
       : `${cleanWsUrl}/${caronaId}/`;
     
+    console.log(`[WebSocket] Tentando conectar na URL: ${url}`);
     this.socket = new WebSocket(url);
 
     this.socket.onopen = () => console.log(`[WebSocket] Conectado à carona: ${caronaId}`);

@@ -20,36 +20,31 @@ export default function ConversationPage() {
   const [messages, setMessages] = useState<MessageData[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   const chatEndRef = useRef<HTMLDivElement>(null);
   const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('usuario_id') || '' : '';
 
   useEffect(() => {
-    if (!caronaId) return;
+    if (!caronaId) {
+      //eslint-disable-next-line
+      setError('ID da carona não fornecido.');
+      setLoading(false);
+      return;
+    }
 
     async function inicializarChat() {
       try {
         setLoading(true);
+        setError(null);
 
+        // Busca os dados reais e o histórico direto do banco de dados centralizado
         const [detalhesSala, historico] = await Promise.all([
           chatService.getRoomDetail(caronaId),
           chatService.getHistoricalMessages(caronaId),
         ]);
 
-        // FALLBACK SEGURO: Se o backend responder mas os campos de rota vierem vazios (undefined), 
-        // nós injetamos os dados reais da carona que você populou no banco.
-        const dadosFormatados: ChatRoomData = {
-          carona_id: detalhesSala.carona_id || caronaId,
-          driver: detalhesSala.driver || { id: "999", name: "Pablo Murilo" },
-          origin: detalhesSala.origin || "Encanto",
-          destination: detalhesSala.destination || "São Paulo",
-          start_time: detalhesSala.start_time || "2026-07-16T13:39:00Z",
-          price: detalhesSala.price || "400.00",
-          available_seats: detalhesSala.available_seats ?? 1,
-          ativo: detalhesSala.ativo ?? true
-        };
-
-        setRoomInfo(dadosFormatados);
+        setRoomInfo(detalhesSala);
 
         const mensagensFormatadas: MessageData[] = (historico || []).map((msg: ChatMessageBackend) => ({
           message: msg.conteudo,
@@ -60,25 +55,17 @@ export default function ConversationPage() {
 
         setMessages(mensagensFormatadas);
         
-        // Conecta ao WebSocket utilizando o ID real estabilizado
-        chatSocketService.connect(caronaId, (newMessage) => {
-          setMessages((prev) => [...prev, newMessage]);
+        // 🌟 CORREÇÃO: Aguarda a Promise do connect resolver antes de prosseguir
+        await chatSocketService.connect(caronaId, (newMessage) => {
+          // Evita duplicar na tela a mensagem que você mesmo acabou de enviar pelo handleSend
+          if (newMessage.usuario_id !== currentUserId) {
+            setMessages((prev) => [...prev, newMessage]);
+          }
         });
 
-      } catch (error) {
-        console.error('Erro na integração do chat:', error);
-        
-        // Se a requisição explodir por completo (ex: 404), mantém o mock seguro para não quebrar a tela
-        setRoomInfo({
-          carona_id: caronaId,
-          driver: { id: "999", name: "Pablo Murilo" },
-          origin: "Encanto",
-          destination: "São Paulo",
-          start_time: "2026-07-16T13:39:00Z",
-          price: "400.00",
-          available_seats: 1,
-          ativo: true
-        });
+      } catch (err) {
+        console.error('Erro na integração do chat:', err);
+        setError('Não foi possível carregar os dados desta carona ou conectar ao chat.');
       } finally {
         setLoading(false);
       }
@@ -99,8 +86,10 @@ export default function ConversationPage() {
     e.preventDefault();
     if (!inputMessage.trim()) return;
 
+    // Dispara a mensagem crua para o servidor WebSocket
     chatSocketService.sendMessage(inputMessage);
     
+    // Insere localmente de forma instantânea para dar fluidez na UI
     const localMsg: MessageData = {
       message: inputMessage,
       usuario_id: currentUserId,
@@ -121,15 +110,26 @@ export default function ConversationPage() {
     );
   }
 
+  if (error) {
+    return (
+      <FrameComponent>
+        <Flex direction="column" justify="center" align="center" height="80vh" gap="4">
+          <Text color="danger" weight="bold">{error}</Text>
+          <IconButton onClick={() => router.push('/chat')}>Voltar para conversas</IconButton>
+        </Flex>
+      </FrameComponent>
+    );
+  }
+
   return (
     <FrameComponent>
-      {/* Header */}
+      {/* Header Dinâmico com dados reais do Postgres */}
       <Flex direction="row" align="center" gap="4" className={css({ p: '4', borderBottom: '1px solid', borderColor: 'gray.200', bg: 'white' })}>
         <IconButton onClick={() => router.push('/chat')}>⬅</IconButton>
         <Avatar src="/cliente.jpeg" size="fx" />
         <Flex direction="column">
           <Text weight="bold" color="special">
-            {roomInfo ? `${roomInfo.origin} ➔ ${roomInfo.destination}` : 'Encanto ➔ São Paulo'}
+            {roomInfo ? `${roomInfo.origin} ➔ ${roomInfo.destination}` : 'Carona'}
           </Text>
           <Text color="muted" size="sm">
             Preço: R$ {roomInfo?.price} | Vagas disponíveis: {roomInfo?.available_seats}
@@ -137,7 +137,7 @@ export default function ConversationPage() {
         </Flex>
       </Flex>
 
-      {/* Mensagens */}
+      {/* Box de Mensagens */}
       <Flex direction="column" gap="3" className={css({ flex: '1', p: '4', overflowY: 'auto', minHeight: '60vh' })}>
         {messages.map((msg, index) => (
           <Flex
@@ -160,7 +160,7 @@ export default function ConversationPage() {
         <div ref={chatEndRef} />
       </Flex>
 
-      {/* Form Input */}
+      {/* Formulário de Input de Mensagem */}
       <form onSubmit={handleSend} className={css({ p: '4', bg: 'white', borderTop: '1px solid', borderColor: 'gray.200' })}>
         <Flex direction="row" gap="2">
           <input
