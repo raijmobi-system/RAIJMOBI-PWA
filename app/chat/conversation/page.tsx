@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { chatSocketService, MessageData } from '@/services/chat_socket';
 import { chatService, ChatRoomData } from '@/services/chat_service';
@@ -11,9 +11,7 @@ import { Text } from '@/components/atoms/typography';
 import { Avatar } from '@/components/atoms/presentation';
 import { css } from "@/styled-system/css";
 
-import { Send } from '@material-symbols-svg/react';
-
-export default function ConversationPage() {
+function ConversationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const caronaId = String(searchParams.get('id') || '');
@@ -182,10 +180,25 @@ export default function ConversationPage() {
             className={css({ flex: '1', px: '4', py: '2', border: '1px solid', borderColor: 'gray.300', borderRadius: 'lg' })}
           />
           <IconButton type="submit" variant="detail">
-              <Send />
+            <Text color="white" weight="bold">Enviar</Text>
           </IconButton>
         </Flex>
       </form>
     </FrameComponent>
+  );
+}
+
+// 🌟 EXPORT PRINCIPAL CORRIGIDO: Envolve o conteúdo com Suspense para autorizar o build estático
+export default function ConversationPage() {
+  return (
+    <Suspense fallback={
+      <FrameComponent>
+        <Flex justify="center" align="center" minHeight="50vh">
+          <Text color="muted" weight="bold">Sincronizando chat...</Text>
+        </Flex>
+      </FrameComponent>
+    }>
+      <ConversationContent />
+    </Suspense>
   );
 }

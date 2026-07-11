@@ -5,18 +5,17 @@ import {
   GoogleMap, 
   useJsApiLoader, 
   DirectionsService, 
-  DirectionsRenderer 
+  DirectionsRenderer,
+  Marker 
 } from '@react-google-maps/api';
 import { Flex } from '@/styled-system/jsx';
 import { Text } from '@/components/atoms/typography';
 
-// O Google exige que o mapa tenha um tamanho explícito
 const containerStyle = {
   width: '100%',
   height: '100%'
 };
 
-// Ponto central padrão enquanto carrega a rota (ex: Brasil)
 const defaultCenter = {
   lat: -15.7801,
   lng: -47.9292
@@ -25,13 +24,13 @@ const defaultCenter = {
 interface MapProps {
   originText: string;
   destinationText: string;
+  userLocation?: { lat: number; lng: number } | null;
 }
 
-export default function Map({ originText, destinationText }: MapProps) {
-  // 🌟 INSIRA SUA CHAVE DA API AQUI (Restrinja no painel do Google Cloud!)
+export default function Map({ originText, destinationText, userLocation }: MapProps) {
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "SUA_CHAVE_AQUI"
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
   });
 
   const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
@@ -50,6 +49,7 @@ export default function Map({ originText, destinationText }: MapProps) {
     if (status === 'OK' && result) {
       setDirectionsResponse(result);
     } else {
+      console.error("❌ Erro ao calcular trajeto:", status);
       setDirectionsError(`Não foi possível traçar a rota: ${status}`);
     }
   };
@@ -57,7 +57,7 @@ export default function Map({ originText, destinationText }: MapProps) {
   if (loadError) {
     return (
       <Flex justify="center" align="center" height="100%">
-        <Text color="danger">Erro ao carregar o Google Maps.</Text>
+        <Text color="danger">Erro ao carregar o Google Maps. Verifique a chave de API.</Text>
       </Flex>
     );
   }
@@ -65,7 +65,7 @@ export default function Map({ originText, destinationText }: MapProps) {
   if (!isLoaded) {
     return (
       <Flex justify="center" align="center" height="100%">
-        <Text color="muted">Iniciando GPS...</Text>
+        <Text color="muted">A iniciar GPS e a carregar mapa...</Text>
       </Flex>
     );
   }
@@ -73,16 +73,14 @@ export default function Map({ originText, destinationText }: MapProps) {
   return (
     <GoogleMap
       mapContainerStyle={containerStyle}
-      center={defaultCenter}
-      zoom={4}
+      center={userLocation || defaultCenter}
+      zoom={userLocation ? 13 : 4}
       options={{
-        disableDefaultUI: true, // Desativa botões poluentes do Google (StreetView, etc)
-        zoomControl: true,      // Mantém apenas o controle de zoom
+        disableDefaultUI: true, 
+        zoomControl: true,      
       }}
     >
-      {/* O DirectionsService pega os textos, converte em coordenadas (Geocoding) 
-        e calcula o trajeto de carro (DRIVING).
-      */}
+      {/* 1. SERVIÇO DE TRAÇADO: Converte os textos em coordenadas e calcula a rota nas estradas */}
       {originText && destinationText && !directionsResponse && !directionsError && (
         <DirectionsService
           options={{
@@ -94,11 +92,28 @@ export default function Map({ originText, destinationText }: MapProps) {
         />
       )}
 
-      {/* O DirectionsRenderer desenha a linha azul e os pinos A e B no mapa */}
+      {/* 2. DESENHISTA DA ROTA: Desenha a linha azul da estrada e ajusta o zoom automaticamente */}
       {directionsResponse && (
         <DirectionsRenderer
           options={{
             directions: directionsResponse,
+            suppressMarkers: false, // Mantém os pinos A (origem) e B (destino) padrão do Google
+          }}
+        />
+      )}
+
+      {/* 3. PINO DO GPS EM TEMPO REAL: Mostra exatamente onde a pessoa está no mapa! */}
+      {userLocation && (
+        <Marker
+          position={userLocation}
+          title="Você está aqui"
+          icon={{
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: "#4285F4",
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 3,
           }}
         />
       )}

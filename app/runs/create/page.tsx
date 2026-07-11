@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Flex, Grid } from '@/styled-system/jsx';
 import { css } from "@/styled-system/css"; 
 
-import { Button } from '@/components/atoms/action/Button'; // 🌟 Utilizando o Átomo Correto
+import { Button } from '@/components/atoms/action/Button'; 
 import { FrameComponent } from "@/components/organisms";
 import { Text } from '@/components/atoms/typography/Text';
 import { FormField, SelectField } from '@/components/molecules'; 
@@ -72,12 +72,18 @@ function CreateRideContent() {
           const resRide = await RideService.getById(editId);
           const ride = resRide.data;
           
-          setOriginCity(ride?.origin?.city || '');
-          setOriginState(ride?.origin?.state || 'RN');
-          setOriginAddress(ride?.origin?.address || '');
-          setDestCity(ride?.destination?.city || '');
-          setDestState(ride?.destination?.state || 'RN');
-          setDestAddress(ride?.destination?.address || '');
+          // 🌟 CORREÇÃO: Forçamos o cast para 'any' para evitar o conflito com a interface global Location do navegador
+          const originData = ride?.origin as any;
+          const destData = ride?.destination as any;
+
+          setOriginCity(originData?.city || '');
+          setOriginState(originData?.state || 'RN');
+          setOriginAddress(originData?.address || '');
+          
+          setDestCity(destData?.city || '');
+          setDestState(destData?.state || 'RN');
+          setDestAddress(destData?.address || '');
+          
           setSeats(ride?.available_seats || 3);
           setPrice(Number(ride?.price) || 0);
           setVehicleId(ride?.vehicle?.toString() || '');
@@ -293,7 +299,7 @@ function CreateRideContent() {
             </Flex>
           )}
 
-          {/* 🌟 NAVEGAÇÃO DO RODAPÉ CORRIGIDA: ATOMOS INTEGRADOS COM WIDTH="FULL" */}
+          {/* NAVEGAÇÃO DO RODAPÉ */}
           <Flex gap="3" mt="6" width="full">
             {step > 1 && (
               <Button 

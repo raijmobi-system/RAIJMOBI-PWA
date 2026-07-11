@@ -83,7 +83,7 @@ const RideDetailsContent = ({
         <Flex className={css({ background: '#f0f7e5' })} padding="4px 10px" borderRadius="10px" gap="6px">
           <PercentDiscount color="#547812" />
           <Text color="special" weight="bold">
-  #{ride.uuid ? ride.id.slice(0, 6).toUpperCase() : 'KIW-000'}
+            Disponível
 </Text>
         </Flex>
         <Box textAlign="right">

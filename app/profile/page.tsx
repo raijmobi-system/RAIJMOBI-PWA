@@ -620,8 +620,8 @@ export default function Perfil() {
                     }
                     content={
                       <div className={flex({ direction: "column", flex: 1, ml: "4" })}>
-                        <Text color="danger">{item.model}</Text>
-                        <span className={css({ color: "violet", fontSize: "14px", mt: "1", textTransform: "capitalize" })}>
+                        <Text color="success">{item.model}</Text>
+                        <span className={css({ color: "gray.600", fontSize: "14px", mt: "1", textTransform: "capitalize" })}>
                           {item.color} • Placa: {item.plate}
                         </span>
                       </div>

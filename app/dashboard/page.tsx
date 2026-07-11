@@ -41,28 +41,14 @@ export default function Dashboard() {
   // ==========================================
   // 1. CARREGAR RECOMENDAÇÕES (ON MOUNT)
   // ==========================================
- // ==========================================
-  // 1. CARREGAR RECOMENDAÇÕES DA IA (ON MOUNT)
-  // ==========================================
   useEffect(() => {
     const fetchRecommendations = async () => {
       setLoadingRecs(true);
       try {
         const response = await RideService.getRecommendations(5);
-        
-        // 🌟 DEBUG: Olhe no console do navegador (F12) o que chegou exatamente
-        console.log("👉 Resposta bruta da API:", response);
-        console.log("👉 Dados recebidos (response.data):", response.data);
-
-        // Se response.data for um array direto, usa ele. Se for um objeto com .results, extrai!
-        const recsArray = Array.isArray(response.data) 
-          ? response.data 
-          : (response.data as any)?.results || [];
-
-        console.log("👉 Array final que vai para a tela:", recsArray);
-        setRecommendations(recsArray);
+        setRecommendations(response.data);
       } catch (error) {
-        console.error("❌ Erro ao buscar recomendações da IA:", error);
+        console.error("Erro ao buscar recomendações da IA:", error);
       } finally {
         setLoadingRecs(false);
       }
@@ -70,6 +56,7 @@ export default function Dashboard() {
 
     fetchRecommendations();
   }, []);
+
   // ==========================================
   // 2. FUNÇÃO DE PESQUISA INTELIGENTE (IA FILTER)
   // ==========================================
@@ -233,7 +220,7 @@ export default function Dashboard() {
         {activeModal === 'filter' && (
           <SearchFilterForm 
             onClose={closeModal} 
-            onApplyFilters={handleAppliedFilters} 
+           
           />
         )}
 

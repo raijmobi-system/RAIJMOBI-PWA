@@ -6,7 +6,8 @@ import { Flex } from '@/styled-system/jsx';
 import { css } from '@/styled-system/css';
 import { Text } from '@/components/atoms/typography';
 
-// Importe o seu serviço de caronas (ajuste o caminho se necessário)
+// 🌟 Importações adicionadas para o GPS funcionar universalmente
+import { Geolocation } from '@capacitor/geolocation';
 import { RideService } from '@/services/ride/rideService'; 
 
 const MapWithNoSSR = dynamic(() => import('@/components/fixed/Map'), {
@@ -20,11 +21,41 @@ const MapWithNoSSR = dynamic(() => import('@/components/fixed/Map'), {
 
 function MonitoringContent() {
   const searchParams = useSearchParams();
-  const rideId = searchParams.get('id'); // Pega o ?id=... da URL
+  const rideId = searchParams.get('id'); // Pega o ?id=... da URL[cite: 16]
 
   const [originStr, setOriginStr] = useState("");
   const [destStr, setDestStr] = useState("");
+  // 🌟 Estado para guardar a latitude e longitude do usuário
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // 🌟 Função para capturar a localização atual do aparelho (PC ou Celular)
+  const buscarLocalizacaoAtual = async () => {
+    try {
+      const permissao = await Geolocation.checkPermissions();
+      if (permissao.location !== 'granted') {
+        await Geolocation.requestPermissions();
+      }
+
+      const posicao = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 10000
+      });
+
+      setUserCoords({
+        lat: posicao.coords.latitude,
+        lng: posicao.coords.longitude
+      });
+    } catch (erro) {
+      console.warn("Não foi possível obter a localização atual:", erro);
+    }
+  };
+
+  // Executa a busca automática do GPS assim que a tela abre
+  useEffect(() => {
+    //eslint-disable-next-line
+    buscarLocalizacaoAtual();
+  }, []);
 
   useEffect(() => {
     const fetchRideDetails = async () => {
@@ -34,13 +65,17 @@ function MonitoringContent() {
       }
 
       try {
-        // Busca a carona real no backend usando a instância do axios blindada
         const response = await RideService.getById(rideId);
         const ride = response.data;
 
-        // Trata os dados dependendo de como você salva (JSON ou String simples)
-        const origem = typeof ride.origin === 'object' ? `${ride.origin.city}, ${ride.origin.state}` : ride.origin;
-        const destino = typeof ride.destination === 'object' ? `${ride.destination.city}, ${ride.destination.state}` : ride.destination;
+        // 🌟 CORREÇÃO: Adicionado ", Brasil" no final para o Directions API do Google funcionar sem erros
+        const origem = typeof ride.origin === 'object' 
+          ? `${ride.origin.city}, ${ride.origin.state}, Brasil` 
+          : `${ride.origin}, Brasil`;
+          
+        const destino = typeof ride.destination === 'object' 
+          ? `${ride.destination.city}, ${ride.destination.state}, Brasil` 
+          : `${ride.destination}, Brasil`;
 
         setOriginStr(origem);
         setDestStr(destino);
@@ -72,12 +107,37 @@ function MonitoringContent() {
 
   return (
     <div className={css({ flex: 1, minHeight: '50vh', width: '100%', position: 'relative' })}>
-      <MapWithNoSSR originText={originStr} destinationText={destStr} />
+      {/* 🌟 Passamos o userLocation para o seu componente Map desenhar a bolinha azul */}
+      <MapWithNoSSR originText={originStr} destinationText={destStr} userLocation={userCoords} />
+
+      {/* 🌟 O BOTÃO QUE FALTAVA: Fica flutuando discretamente no canto inferior direito do mapa */}
+      <button
+        onClick={buscarLocalizacaoAtual}
+        title="Centralizar na minha posição"
+        className={css({
+          position: 'absolute',
+          bottom: '24px',
+          right: '24px',
+          zIndex: 10,
+          backgroundColor: 'white',
+          padding: '12px',
+          borderRadius: 'full',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          border: 'none',
+          _hover: { backgroundColor: 'gray.100' },
+          _active: { transform: 'scale(0.95)' }
+        })}
+      >
+        <span style={{ fontSize: '20px' }}>🎯</span>
+      </button>
     </div>
   );
 }
 
-// O Next.js exige que páginas que usem useSearchParams sejam envolvidas em um Suspense
 export default function Monitoring() {
   return (
     <Flex direction='column' height='100%' width="100%">
