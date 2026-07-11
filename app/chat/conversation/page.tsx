@@ -3,13 +3,15 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { chatSocketService, MessageData } from '@/services/chat_socket';
-import { chatService, ChatMessageBackend, ChatRoomData } from '@/services/chat_service';
+import { chatService, ChatRoomData } from '@/services/chat_service';
 import { FrameComponent } from "@/components/organisms";
 import { IconButton } from '@/components/atoms/action';
 import { Flex } from '@/styled-system/jsx';
 import { Text } from '@/components/atoms/typography';
 import { Avatar } from '@/components/atoms/presentation';
 import { css } from "@/styled-system/css";
+
+import { Send } from '@material-symbols-svg/react';
 
 export default function ConversationPage() {
   const router = useRouter();
@@ -26,6 +28,10 @@ export default function ConversationPage() {
   const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('usuario_id') || '' : '';
 
   useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  useEffect(() => {
     if (!caronaId) {
       //eslint-disable-next-line
       setError('ID da carona não fornecido.');
@@ -35,76 +41,80 @@ export default function ConversationPage() {
 
     async function inicializarChat() {
       try {
-        setLoading(true);
-        setError(null);
+        const roomData = await chatService.getRoomDetail(caronaId);
+        setRoomInfo(roomData);
 
-        // Busca os dados reais e o histórico direto do banco de dados centralizado
-        const [detalhesSala, historico] = await Promise.all([
-          chatService.getRoomDetail(caronaId),
-          chatService.getHistoricalMessages(caronaId),
-        ]);
+        const historicalData = await chatService.getHistoricalMessages(caronaId);
 
-        setRoomInfo(detalhesSala);
-
-        const mensagensFormatadas: MessageData[] = (historico || []).map((msg: ChatMessageBackend) => ({
-          message: msg.conteudo,
-          usuario_id: msg.usuario.id,
-          is_me: msg.usuario.id === currentUserId,
-          data_envio: msg.data_envio,
-        }));
-
-        setMessages(mensagensFormatadas);
-        
-        // 🌟 CORREÇÃO: Aguarda a Promise do connect resolver antes de prosseguir
-        await chatSocketService.connect(caronaId, (newMessage) => {
-          // Evita duplicar na tela a mensagem que você mesmo acabou de enviar pelo handleSend
-          if (newMessage.usuario_id !== currentUserId) {
-            setMessages((prev) => [...prev, newMessage]);
-          }
+        const formattedHistory: MessageData[] = historicalData.map((msg) => {
+          const userIdFromMsg = msg.usuario?.id || '';
+          return {
+            message: msg.conteudo,
+            usuario_id: userIdFromMsg,
+            is_me: userIdFromMsg !== '' && userIdFromMsg === currentUserId,
+            data_envio: msg.data_envio,
+          };
         });
 
-      } catch (err) {
-        console.error('Erro na integração do chat:', err);
-        setError('Não foi possível carregar os dados desta carona ou conectar ao chat.');
+        setMessages(formattedHistory);
+
+        await chatSocketService.connect(
+          caronaId,
+          (newData: MessageData) => {
+            const messageWithAuth: MessageData = {
+              ...newData,
+              is_me: newData.usuario_id === currentUserId || newData.is_me
+            };
+
+            setMessages((prev) => {
+              if (prev.some((m) => m.data_envio === messageWithAuth.data_envio && m.message === messageWithAuth.message)) {
+                return prev;
+              }
+              return [...prev, messageWithAuth];
+            });
+          },
+          () => {
+            console.warn("⚠️ WebSocket foi desconectado.");
+          }
+        );
+
+      } catch (err: any) {
+        console.error("❌ Erro ao inicializar fluxo de chat:", err);
+        setError('Não foi possível carregar o chat ou conectar ao servidor.');
       } finally {
         setLoading(false);
       }
     }
 
     inicializarChat();
-
-    return () => {
-      chatSocketService.disconnect();
-    };
   }, [caronaId, currentUserId]);
-
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputMessage.trim()) return;
 
-    // Dispara a mensagem crua para o servidor WebSocket
-    chatSocketService.sendMessage(inputMessage);
-    
-    // Insere localmente de forma instantânea para dar fluidez na UI
-    const localMsg: MessageData = {
-      message: inputMessage,
-      usuario_id: currentUserId,
-      is_me: true,
-      data_envio: new Date().toISOString()
-    };
-    setMessages((prev) => [...prev, localMsg]);
-    setInputMessage('');
+    try {
+      chatSocketService.sendMessage(inputMessage);
+      
+      const temporaryMsg: MessageData = {
+        message: inputMessage,
+        usuario_id: currentUserId,
+        is_me: true,
+        data_envio: new Date().toISOString()
+      };
+      
+      setMessages((prev) => [...prev, temporaryMsg]);
+      setInputMessage('');
+    } catch (err) {
+      console.error("❌ Falha ao enviar mensagem pelo socket:", err);
+    }
   };
 
   if (loading) {
     return (
       <FrameComponent>
-        <Flex justify="center" align="center" height="80vh">
-          <Text color="muted">Carregando histórico do chat...</Text>
+        <Flex justify="center" align="center" minHeight="50vh">
+          <Text color="muted">Carregando mensagens da conversa...</Text>
         </Flex>
       </FrameComponent>
     );
@@ -113,9 +123,11 @@ export default function ConversationPage() {
   if (error) {
     return (
       <FrameComponent>
-        <Flex direction="column" justify="center" align="center" height="80vh" gap="4">
+        <Flex direction="column" justify="center" align="center" minHeight="50vh" gap="4" p="4">
           <Text color="danger" weight="bold">{error}</Text>
-          <IconButton onClick={() => router.push('/chat')}>Voltar para conversas</IconButton>
+          <IconButton onClick={() => window.location.reload()}>
+            <Text color="white">Tentar Novamente</Text>
+          </IconButton>
         </Flex>
       </FrameComponent>
     );
@@ -123,22 +135,22 @@ export default function ConversationPage() {
 
   return (
     <FrameComponent>
-      {/* Header Dinâmico com dados reais do Postgres */}
-      <Flex direction="row" align="center" gap="4" className={css({ p: '4', borderBottom: '1px solid', borderColor: 'gray.200', bg: 'white' })}>
-        <IconButton onClick={() => router.push('/chat')}>⬅</IconButton>
-        <Avatar src="/cliente.jpeg" size="fx" />
-        <Flex direction="column">
-          <Text weight="bold" color="special">
-            {roomInfo ? `${roomInfo.origin} ➔ ${roomInfo.destination}` : 'Carona'}
-          </Text>
-          <Text color="muted" size="sm">
-            Preço: R$ {roomInfo?.price} | Vagas disponíveis: {roomInfo?.available_seats}
-          </Text>
+      {roomInfo && (
+        <Flex
+          direction="row"
+          align="center"
+          gap="3"
+          className={css({ p: '4', bg: 'gray.50', borderBottom: '1px solid', borderColor: 'gray.200' })}
+        >
+          <Avatar src="/driver-placeholder.png" />
+          <Flex direction="column">
+            <Text weight="bold">{roomInfo.driver?.name || "Motorista"}</Text>
+            <Text size="xs" color="muted">Preço da vaga: {roomInfo.price}</Text>
+          </Flex>
         </Flex>
-      </Flex>
+      )}
 
-      {/* Box de Mensagens */}
-      <Flex direction="column" gap="3" className={css({ flex: '1', p: '4', overflowY: 'auto', minHeight: '60vh' })}>
+      <Flex direction="column" gap="3" className={css({ p: '4', overflowY: 'auto', minHeight: '60vh' })}>
         {messages.map((msg, index) => (
           <Flex
             key={index}
@@ -160,7 +172,6 @@ export default function ConversationPage() {
         <div ref={chatEndRef} />
       </Flex>
 
-      {/* Formulário de Input de Mensagem */}
       <form onSubmit={handleSend} className={css({ p: '4', bg: 'white', borderTop: '1px solid', borderColor: 'gray.200' })}>
         <Flex direction="row" gap="2">
           <input
@@ -170,9 +181,9 @@ export default function ConversationPage() {
             placeholder="Escreva sua mensagem aqui..."
             className={css({ flex: '1', px: '4', py: '2', border: '1px solid', borderColor: 'gray.300', borderRadius: 'lg' })}
           />
-          <button type="submit" className={css({ bg: 'emerald.600', color: 'white', px: '5', py: '2', borderRadius: 'lg' })}>
-            Enviar
-          </button>
+          <IconButton type="submit" variant="detail">
+              <Send />
+          </IconButton>
         </Flex>
       </form>
     </FrameComponent>

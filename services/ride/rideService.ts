@@ -21,8 +21,11 @@ export const RideService = {
   delete: (id: string) => api.delete<void>(`api/ride/rides/${id}/`),
 
   // Atualizado para não precisar concatenar obrigatoriamente o user_id na query string se o backend usar o request.user
-  getRecommendations: (topN: number = 5) => 
-    api.get<Ride[]>(`api/ride/rides/ai-recommendations/?top_n=${topN}`),
+  // Em services/ride/rideService.ts
+getRecommendations: (topN: number = 5) => 
+  api.get<Ride[]>(`/api/ride/rides/ai-recommendations/?top_n=${topN}`, {
+    timeout: 100000, // 100 segundos para dar tempo do Ollama responder
+  }),
 
   aiFilter: (text: string) => api.post<{
     filters_applied: Record<string, string | number>;

@@ -54,7 +54,7 @@ export default function ChatListPage() {
 
   return (
     <FrameComponent>
-      <Flex direction="column" gap="3" style={{ padding: "16px" }}>
+      <Flex direction="column" gap="3">
         {rooms.map((room) => {
           const driverName = room.driver?.name || "Motorista";
           

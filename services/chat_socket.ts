@@ -34,7 +34,7 @@ class ChatSocketService {
     
     // 2. CORREÇÃO DA BARRA: Adicionamos a barra estrita '/' após o ID da carona exigida pelo re_path
     const url = token 
-      ? `${cleanWsUrl}/${caronaId}/?token=${token}` 
+      ? `${cleanWsUrl}/${caronaId}/?jwt=${token}&token=${token}` 
       : `${cleanWsUrl}/${caronaId}/`;
     
     console.log(`[WebSocket] Tentando conectar na URL: ${url}`);

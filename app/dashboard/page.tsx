@@ -41,15 +41,28 @@ export default function Dashboard() {
   // ==========================================
   // 1. CARREGAR RECOMENDAÇÕES (ON MOUNT)
   // ==========================================
+ // ==========================================
+  // 1. CARREGAR RECOMENDAÇÕES DA IA (ON MOUNT)
+  // ==========================================
   useEffect(() => {
     const fetchRecommendations = async () => {
       setLoadingRecs(true);
       try {
-        // Agora chama o serviço sem a necessidade de extrair o ID manualmente no front
         const response = await RideService.getRecommendations(5);
-        setRecommendations(response.data);
+        
+        // 🌟 DEBUG: Olhe no console do navegador (F12) o que chegou exatamente
+        console.log("👉 Resposta bruta da API:", response);
+        console.log("👉 Dados recebidos (response.data):", response.data);
+
+        // Se response.data for um array direto, usa ele. Se for um objeto com .results, extrai!
+        const recsArray = Array.isArray(response.data) 
+          ? response.data 
+          : (response.data as any)?.results || [];
+
+        console.log("👉 Array final que vai para a tela:", recsArray);
+        setRecommendations(recsArray);
       } catch (error) {
-        console.error("Erro ao buscar recomendações da IA:", error);
+        console.error("❌ Erro ao buscar recomendações da IA:", error);
       } finally {
         setLoadingRecs(false);
       }
@@ -57,7 +70,6 @@ export default function Dashboard() {
 
     fetchRecommendations();
   }, []);
-
   // ==========================================
   // 2. FUNÇÃO DE PESQUISA INTELIGENTE (IA FILTER)
   // ==========================================
@@ -87,11 +99,7 @@ export default function Dashboard() {
     closeModal();
 
     try {
-      // Faz a requisição para o endpoint padrão estruturado pelo DjangoFilterBackend
       const response = await RideService.getAll(formFilters);
-      
-      // Como o Django retorna um objeto paginado ({ count, results, ... }), 
-      // extraímos a propriedade .results para renderizar os cards corretamente
       setSearchResults(response.data.results);
     } catch (error) {
       console.error("Erro ao aplicar filtros tradicionais:", error);
@@ -102,6 +110,16 @@ export default function Dashboard() {
   };
 
   // ==========================================
+  // FUNÇÃO AUXILIAR PARA FORMATAR LOCALIZAÇÃO
+  // ==========================================
+  const formatLocation = (loc: any) => {
+    if (!loc) return 'Desconhecido';
+    if (typeof loc === 'string') return loc; // Se já for texto, retorna como está
+    const parts = [loc.city, loc.state].filter(Boolean);
+    return parts.length > 0 ? parts.join(' - ') : (loc.address || 'Local não especificado');
+  };
+
+  // ==========================================
   // RENDERIZADOR DINÂMICO DE CARDS
   // ==========================================
   const renderRideCards = (rides: Ride[]) => {
@@ -109,45 +127,52 @@ export default function Dashboard() {
       return [<Text key="empty" color="muted">Nenhuma carona encontrada.</Text>];
     }
 
-    return rides.map((ride: any) => (
-      <CardComponent
-        key={ride.id}
-        direction='column'
-        fullWidth={true}
-        hasPadding={false}
-        Image={<img src='trajeto.png' alt="Trajeto" className={css({ height: '118px', w: '100%', maxH: '118px', objectFit: 'cover'})} />}
-        content={
-          <RideSummary 
-            title={`Para ${ride.destination}`}
-            seats={`${ride.available_seats} vagas livres`}
-            price={`R$ ${ride.price}`}
-            origin={ride.origin}
-            destination={ride.destination}
-            aiReason={ride.ai_reason} 
-          />
-        }
-        extraContent={
-          <Flex>
-            <IconButton 
-              variant='detail' 
-              size='full' 
-              className={css({margin: '0.75rem'})} 
-              onClick={() => {
-                setSelectedRide(ride);
-                setActiveModal('ride_details');
-              }}
-            >
-              <Text color='white'>Participar</Text>
-            </IconButton>
-          </Flex>
-        }
-      />
-    ));
+    return rides.map((ride: any) => {
+      // Converte os objetos {city, state} em string legível
+      const originText = formatLocation(ride.origin);
+      const destText = formatLocation(ride.destination);
+
+      return (
+        <CardComponent
+          key={ride.id}
+          direction='column'
+          fullWidth={true}
+          hasPadding={false}
+          Image={<img src='/trajeto.png' alt="Trajeto" className={css({ height: '118px', w: '100%', maxH: '118px', objectFit: 'cover'})} />}
+          content={
+            <RideSummary 
+              title={`Para ${destText}`}
+              seats={`${ride.available_seats} vagas livres`}
+              price={`R$ ${ride.price}`}
+              origin={originText}
+              destination={destText}
+            />
+          }
+          extraContent={
+            <Flex>
+              <IconButton 
+                variant='detail' 
+                size='full' 
+                className={css({margin: '0.75rem'})} 
+                onClick={() => {
+                  setSelectedRide(ride);
+                  setActiveModal('ride_details');
+                }}
+              >
+                <Text color='white'>Participar</Text>
+              </IconButton>
+            </Flex>
+          }
+        />
+      );
+    });
   };
 
   const getModalTitle = () => {
     if (activeModal === 'filter') return 'Filtros de Pesquisa';
-    if (activeModal === 'ride_details' && selectedRide) return `Para ${selectedRide.destination}`;
+    if (activeModal === 'ride_details' && selectedRide) {
+      return `Para ${formatLocation(selectedRide.destination)}`;
+    }
     return '';
   };
 
@@ -217,7 +242,7 @@ export default function Dashboard() {
             <Flex direction='row' justifyContent='space-between'>
               <Flex className={css({background: '#f0f7e5'})} padding='4px 10px' borderRadius='10px' gap='10px'>
                 <PercentDiscount color='#547812'/>
-                <Text color='special'>ID: {selectedRide.id.split('-')[0]}</Text>
+                <Text color='special'>ID teste</Text>
               </Flex>
               <Text fontSize='20px' color='special' weight='medium'>{selectedRide.price}</Text>
             </Flex>
