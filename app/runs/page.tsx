@@ -15,6 +15,7 @@ import { FrameComponent } from "@/components/organisms";
 import { Text } from '@/components/atoms/typography';
 import { CardComponent } from '@/components/molecules';
 import Modal from "@/components/fixed/Modal"; 
+import RatingModal from "@/components/template/RatingModal"; // 🌟 Importando o seu template de notas
 
 // Serviços Reais da API
 import { api } from '@/services/InterceptRequisition';
@@ -61,9 +62,10 @@ interface RideDetailsProps {
   onClose: () => void;
   onEditClick: (ride: any) => void;
   onSuccessCancel: () => void;
+  onRatingClick?: (item: any) => void; // 🌟 Propriedade para disparar a avaliação
 }
 
-const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel }: RideDetailsProps) => {
+const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel, onRatingClick }: RideDetailsProps) => {
   const router = useRouter(); 
   
   const [canceling, setCanceling] = useState(false);
@@ -180,7 +182,7 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel 
 
       <Flex direction="column" gap="2" mt="2">
         
-        {/* 🌟 BOTÃO DE MAPA DINÂMICO UNIFICADO E HIGIENIZADO */}
+        {/* BOTÃO DE MAPA DINÂMICO UNIFICADO E HIGIENIZADO */}
         <Button 
           width='full' 
           onClick={() => {
@@ -245,35 +247,52 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel 
             )}
           </>
         ) : (
-          <Button 
-            width='full' 
-            onClick={handleCancelParticipation}
-            disabled={isAlreadyCanceled || canceling || isLocked || pagando}
-            className={css({ 
-              bg: isAlreadyCanceled || isLocked ? 'gray.100' : 'red.50', 
-              border: '1px solid', 
-              borderColor: isAlreadyCanceled || isLocked ? 'gray.300' : 'red.200' 
-            })}
-          >
-            <Text color={isAlreadyCanceled || isLocked ? 'muted' : 'white'} weight='bold'>
-              {canceling ? 'Cancelando...' : isAlreadyCanceled ? 'Reserva Já Cancelada' : isLocked ? 'Viagem em Andamento' : 'Cancelar Participação'}
-            </Text>
-          </Button>
+          <>
+            {/* 🌟 GATILHO: Se a carona foi encerrada, exibe o botão destacado para avaliar */}
+            {ride.status?.toLowerCase() === 'finalizada' && reservationStatus === 'confirmada' && (
+              <Button
+                width="full"
+                onClick={() => {
+                  onClose(); 
+                  if (onRatingClick) onRatingClick(item); 
+                }}
+                className={css({ bg: '#FFC107', _hover: { bg: '#FFA000' } })}
+              >
+                <Text color="white" weight="bold">⭐ Avaliar Motorista</Text>
+              </Button>
+            )}
+
+            {/* Fluxo de pagamento do stripe se pendente */}
+            {!isAlreadyCanceled && reservationStatus === 'pendente' && (
+              <Button
+                width="full"
+                onClick={handleFazerPagamento}
+                disabled={pagando || isLocked || canceling}
+                className={css({ bg: pagando || isLocked ? 'muted' : '#547812' })}
+              >
+                <Text color="white" weight='bold'>
+                  {pagando ? 'Abrindo Pagamento...' : isLocked ? 'Carona Encerrada' : 'Fazer Pagamento'}
+                </Text>
+              </Button>
+            )}
+
+            <Button 
+              width='full' 
+              onClick={handleCancelParticipation}
+              disabled={isAlreadyCanceled || canceling || isLocked || pagando}
+              className={css({ 
+                bg: isAlreadyCanceled || isLocked ? 'gray.100' : 'red.50', 
+                border: '1px solid', 
+                borderColor: isAlreadyCanceled || isLocked ? 'gray.300' : 'red.200' 
+              })}
+            >
+              <Text color={isAlreadyCanceled || isLocked ? 'muted' : 'white'} weight='bold'>
+                {canceling ? 'Cancelando...' : isAlreadyCanceled ? 'Reserva Já Cancelada' : isLocked ? 'Viagem em Andamento' : 'Cancelar Participação'}
+              </Text>
+            </Button>
+          </>
         )}
       </Flex>
-
-      {role === 'passageiro' && !isAlreadyCanceled && reservationStatus === 'pendente' && (
-        <Button
-          width="full"
-          onClick={handleFazerPagamento}
-          disabled={pagando || isLocked || canceling}
-          className={css({ bg: pagando || isLocked ? 'muted' : '#547812' })}
-        >
-          <Text color="white" weight='bold'>
-            {pagando ? 'Abrindo Pagamento...' : isLocked ? 'Carona Encerrada' : 'Fazer Pagamento'}
-          </Text>
-        </Button>
-      )}
     </Flex>
   );
 };
@@ -293,7 +312,11 @@ function RunsContent() {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
-  // 🌟 OTIMIZAÇÃO: Chamadas da API envelopadas em useCallback para evitar loops de re-render
+  // 🌟 Estados para o controle de avaliação
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingData, setRatingData] = useState({ reservationId: '', driverId: '', driverName: '' });
+
+  // Chamadas da API envelopadas em useCallback para evitar loops de re-render
   const fetchItems = useCallback(async (pageNumber: number, tab: TabType) => {
     setLoading(true);
     try {
@@ -336,7 +359,7 @@ function RunsContent() {
     fetchItems(1, activeTab);
   }, [fetchItems, activeTab]);
 
-  // 🌟 ESCUTA RETORNO DO STRIPE WEB E CONFIRMA NO BACKEND
+  // ESCUTA RETORNO DO STRIPE WEB E CONFIRMA NO BACKEND
   useEffect(() => {
     const verificarPagamentoWeb = async () => {
       const paymentStatus = searchParams.get('payment');
@@ -425,7 +448,6 @@ function RunsContent() {
               onClick={() => router.push('/runs/create')}
               width="full"
               variant="outline"
-              
               className={css({ border: '2px dashed', borderColor: '#547812', height: '60px' })}
             >
               <Add color="#547812"/> 
@@ -485,6 +507,7 @@ function RunsContent() {
         </Flex>
       </FrameComponent>
 
+      {/* MODAL TRADICIONAL DE DETALHES DA VIAGEM */}
       <Modal 
         isOpen={!!selectedItem} 
         onClose={closeModal} 
@@ -497,9 +520,30 @@ function RunsContent() {
             onClose={closeModal} 
             onEditClick={handleEditRedirect}
             onSuccessCancel={reloadCurrentTab}
+            onRatingClick={(reservation) => {
+              setRatingData({
+                reservationId: reservation.id,
+                driverId: reservation.ride?.vehicle?.user?.id || reservation.ride?.vehicle?.user || '',
+                driverName: reservation.ride?.vehicle?.user?.name || 'Motorista Parceiro'
+              });
+              setShowRatingModal(true);
+            }}
           />
         )}
       </Modal>
+
+      {/* 🌟 MODAL DE NOTAS INTERATIVO COMPLEMENTAR */}
+      <RatingModal
+        isOpen={showRatingModal}
+        onClose={() => setShowRatingModal(false)}
+        reservationId={ratingData.reservationId}
+        driverId={ratingData.driverId}
+        driverName={ratingData.driverName}
+        onSuccess={() => {
+          alert("Obrigado por avaliar o motorista parceiro!");
+          reloadCurrentTab();
+        }}
+      />
 
     </Flex>
   );
