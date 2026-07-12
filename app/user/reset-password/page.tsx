@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { css } from "@/styled-system/css";
 import { flex } from "@/styled-system/patterns";
@@ -12,10 +12,11 @@ import { api } from "@/services/InterceptRequisition";
 
 import { Key, CheckCircle } from "@material-symbols-svg/react";
 
-export default function RedefinirSenha() {
+// 🌟 1. COMPONENTE INTERNO: Contém toda a lógica e lê a URL com segurança
+function ResetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get("token");
+  const token = searchParams.get("token"); // Captura o ?token= da URL
 
   const [loading, setLoading] = useState(false);
   const [novaSenha, setNovaSenha] = useState("");
@@ -105,7 +106,7 @@ export default function RedefinirSenha() {
             id="novaSenha"
             label="Nova Senha"
             placeholder="Digite a nova senha"
-            type="password" // Assumindo que seu FormField aceita a prop 'type'
+            type="password"
             value={novaSenha}
             onChange={(e: any) => setNovaSenha(e.target.value)}
           />
@@ -131,5 +132,18 @@ export default function RedefinirSenha() {
         </div>
       </div>
     </main>
+  );
+}
+
+// 🌟 2. EXPORT PRINCIPAL: Protege a página com o Suspense Boundary para autorizar o build estático
+export default function RedefinirSenhaPage() {
+  return (
+    <Suspense fallback={
+      <main className={flex({ alignItems: "center", justifyContent: "center", minHeight: "100vh" })}>
+        <Text color="muted" weight="bold">A carregar formulário de segurança...</Text>
+      </main>
+    }>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }

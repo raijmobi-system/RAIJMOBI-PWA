@@ -8,7 +8,6 @@ import { Text } from '@/components/atoms/typography';
 import { FilterCard } from '@/components/organisms/FilterCard';
 import { FormField } from '@/components/molecules/FormFIeld';
 import { SelectField } from '@/components/molecules/SelectField';
-import { SliderControl } from '@/components/molecules/SliderControl';
 import { AISearchInput } from '@/components/molecules/AISearchInput';
 import { CityAutocomplete, CityOption } from '@/components/molecules/CityAutocomplete';
 import { Button } from '@/components/atoms/action';
@@ -21,11 +20,14 @@ export interface SearchFormInputs {
   horario: string;
 }
 
+// 🌟 1. ADICIONADO O SUPORTE AO 'onApply' NA INTERFACE DO TYPESCRIPT
 interface SearchFilterFormProps {
   onClose?: () => void;
+  onApply?: (filters: Record<string, any>) => void;
 }
 
-export const SearchFilterForm: React.FC<SearchFilterFormProps> = ({ onClose }) => {
+// 🌟 2. RECEBENDO O 'onApply' NOS PROPS DO COMPONENTE
+export const SearchFilterForm: React.FC<SearchFilterFormProps> = ({ onClose, onApply }) => {
   const router = useRouter();
   const [origemState, setOrigemState] = useState('');
   const [destinoState, setDestinoState] = useState('');
@@ -41,22 +43,33 @@ export const SearchFilterForm: React.FC<SearchFilterFormProps> = ({ onClose }) =
   });
 
   const onSubmit = (data: SearchFormInputs) => {
-    const searchParams = new URLSearchParams();
+    // Monta o objeto de filtros limpo para o backend Django
+    const filters: Record<string, any> = {};
 
-    // 🌟 Envia apenas o NOME DA CIDADE para o campo origin e destination
     if (data.origem.trim()) {
-      searchParams.append('origin', data.origem.trim());
-      if (origemState) searchParams.append('origin_state', origemState);
+      filters.origin = data.origem.trim();
+      if (origemState) filters.origin_state = origemState;
     }
     if (data.destino.trim()) {
-      searchParams.append('destination', data.destino.trim());
-      if (destinoState) searchParams.append('destination_state', destinoState);
+      filters.destination = data.destino.trim();
+      if (destinoState) filters.destination_state = destinoState;
     }
     if (data.data) {
-      searchParams.append('start_time_after', data.data);
+      filters.start_time_after = data.data;
     }
 
+    // Fecha o modal caso a função exista
     if (onClose) onClose();
+
+    // 🌟 3. SE O 'onApply' FOI PASSADO (COMO NA TELA DE RESULTADOS), USA ELE EM VEZ DE MUDAR DE PÁGINA
+    if (onApply) {
+      onApply(filters);
+      return;
+    }
+
+    // Comportamento fallback para quando for usado na tela inicial (Dashboard)
+    const searchParams = new URLSearchParams();
+    Object.entries(filters).forEach(([key, val]) => searchParams.append(key, String(val)));
     router.push(`/search-results?${searchParams.toString()}`);
   };
 

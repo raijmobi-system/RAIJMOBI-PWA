@@ -75,13 +75,13 @@ export default function RootLayout({
           <aside
             className={css({
               gridArea: 'aside',
-              background: 'gray.100',
+              background: '#363636',
               padding: '6',
               display: 'none',
               md: { display: 'flex', flexDirection: 'column' },
             })}
           >
-            <Navigation direction="column"/>
+            <Navigation direction="column" />
           </aside>
         )}
 

@@ -11,6 +11,7 @@ import { Avatar } from '@/components/atoms/presentation';
 // Componentes Reutilizáveis do Projeto
 import CardComponent from '@/components/molecules/CardComponent';
 import Modal from '@/components/fixed/Modal';
+import { SearchFilterForm } from '@/components/template/SearchFilterForm'; // 🌟 1. IMPORTADO O FORMULÁRIO DE FILTRO
 
 // Serviços da API
 import { RideService } from '@/services/ride/rideService';
@@ -23,7 +24,8 @@ import {
   Schedule, 
   Group, 
   VerifiedUser,
-  ArrowBack
+  ArrowBack,
+  ManageSearch
 } from '@material-symbols-svg/react';
 
 /* ==========================================================================
@@ -40,18 +42,15 @@ const RideDetailsContent = ({ ride, onClose, onSuccess }: RideDetailsProps) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Extração segura de dados (prepara para dados aninhados ou IDs simples)
   const vehicle = typeof ride?.vehicle === 'object' ? ride.vehicle : (ride?.vehicle_detail || {});
   const driver = typeof vehicle?.user === 'object' ? vehicle.user : (vehicle?.user_detail || {});
   
   const priceUnit = Number(ride?.price || 0);
   const totalPrice = priceUnit * requestedSeats;
 
-  // Formatação segura de datas
   const dataSaida = ride?.start_time ? new Date(ride.start_time).toLocaleDateString('pt-BR') : '--/--/----';
   const horaSaida = ride?.start_time ? new Date(ride.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '00:00';
 
-  // Formatação de Localidade (cidade/estado ou string)
   const formatLocation = (loc: any) => {
     if (!loc) return 'Não informado';
     return typeof loc === 'object' ? `${loc.city || ''}, ${loc.state || ''}` : loc;
@@ -80,7 +79,6 @@ const RideDetailsContent = ({ ride, onClose, onSuccess }: RideDetailsProps) => {
 
   return (
     <Flex direction="column" gap="4">
-      {/* Topo: Identificador e Preço Total */}
       <Flex direction="row" justifyContent="space-between" alignItems="center">
         <Flex className={css({ background: '#f0f7e5', px: '3', py: '1', borderRadius: 'lg' })} gap="2">
           <Text color="special" weight="bold" size="sm">
@@ -92,7 +90,6 @@ const RideDetailsContent = ({ ride, onClose, onSuccess }: RideDetailsProps) => {
         </Text>
       </Flex>
 
-      {/* Bloco: Motorista */}
       <Flex direction="row" gap="3" alignItems="center" p="3" bg="gray.50" borderRadius="xl">
         <Avatar src={driver?.photo || '/driver-placeholder.png'} size="md" />
         <Flex direction="column" flex="1">
@@ -104,7 +101,6 @@ const RideDetailsContent = ({ ride, onClose, onSuccess }: RideDetailsProps) => {
         </Flex>
       </Flex>
 
-      {/* Bloco: Veículo */}
       <Flex direction="column" gap="2" p="3" borderWidth="1px" borderColor="gray.100" borderRadius="xl">
         <Flex gap="2" align="center" className={css({ color: 'gray.500' })}>
           <DirectionsCar /> <Text weight="bold" size="sm" color="primary">Veículo</Text>
@@ -117,7 +113,6 @@ const RideDetailsContent = ({ ride, onClose, onSuccess }: RideDetailsProps) => {
         </Grid>
       </Flex>
 
-      {/* Bloco: Trajeto */}
       <Flex direction="column" gap="2" p="3" borderWidth="1px" borderColor="gray.100" borderRadius="xl">
         <Flex gap="2" align="center" className={css({ color: 'gray.500' })}>
           <LocationOn /> <Text weight="bold" size="sm" color="primary">Trajeto da Viagem</Text>
@@ -135,7 +130,6 @@ const RideDetailsContent = ({ ride, onClose, onSuccess }: RideDetailsProps) => {
         </Flex>
       </Flex>
 
-      {/* Bloco: Data e Horário */}
       <Grid columns={2} gap="3">
         <Flex direction="column" p="3" bg="gray.50" borderRadius="xl" align="center">
           <Schedule className={css({ color: 'gray.400', mb: '1' })} />
@@ -149,7 +143,6 @@ const RideDetailsContent = ({ ride, onClose, onSuccess }: RideDetailsProps) => {
         </Flex>
       </Grid>
 
-      {/* SELETOR INTERATIVO DE VAGAS */}
       <Flex justify="between" align="center" p="3" bg="gray.50" borderRadius="xl" mt="1">
         <Box>
           <Text size="sm" weight="bold">Quantidade de Vagas</Text>
@@ -178,7 +171,6 @@ const RideDetailsContent = ({ ride, onClose, onSuccess }: RideDetailsProps) => {
 
       {error && <Text size="xs" color="danger" weight="medium">{error}</Text>}
 
-      {/* Botão Final de Solicitação */}
       <Button 
         width="full" 
         onClick={handleParticipate} 
@@ -194,7 +186,7 @@ const RideDetailsContent = ({ ride, onClose, onSuccess }: RideDetailsProps) => {
 };
 
 /* ==========================================================================
-   2. CONTEÚDO PRINCIPAL: LISTAGEM DE CARDS HORIZONTAIS
+   2. CONTEÚDO PRINCIPAL: LISTAGEM DE CARDS COM FILTRAGEM VIA MODAL
    ========================================================================== */
 function ResultadosContent() {
   const searchParams = useSearchParams();
@@ -204,16 +196,20 @@ function ResultadosContent() {
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedRide, setSelectedRide] = useState<any | null>(null);
 
-  // Lê os parâmetros da URL vindos da tela de pesquisa
+  // 🌟 2. ESTADO DE CONTROLE DO MODAL DE FILTROS
+  const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
+
   const originQuery = searchParams.get('origin') || '';
   const destinationQuery = searchParams.get('destination') || '';
 
-  const fetchRides = useCallback(async () => {
+  // 🌟 FUNÇÃO ATUALIZADA: Agora aceita receber filtros extras do SearchFilterForm
+  const fetchRides = useCallback(async (customFilters?: any) => {
     setLoading(true);
     try {
       const params: any = {
         origin: originQuery || undefined,
         destination: destinationQuery || undefined,
+        ...customFilters // Sobrescreve com os filtros aplicados no Modal
       };
       const response = await RideService.getAll(params);
       const data = response.data;
@@ -231,17 +227,16 @@ function ResultadosContent() {
     fetchRides();
   }, [fetchRides]);
 
-  // Função auxiliar para pegar nome de cidade
   const getCityName = (loc: any) => {
     if (!loc) return '---';
     return typeof loc === 'object' ? (loc.city || loc.state || '') : loc;
   };
 
   return (
-    <Flex direction="column" gap="4" width="full" maxW="700px" margin="0 auto" p="4">
+    <Flex direction="column" gap="4" width="full" p="4">
       
-      {/* Cabeçalho de Navegação Simples */}
-      <Flex justify="between" align="center" pb="2" borderBottom="1px solid" borderColor="gray.200">
+      {/* Cabeçalho de Navegação */}
+      <Flex justify="space-between" align="center" pb="2" borderBottom="1px solid" borderColor="gray.200">
         <Flex align="center" gap="3">
           <button onClick={() => router.back()} className={css({ cursor: 'pointer', bg: 'transparent', display: 'flex' })}>
             <ArrowBack />
@@ -254,8 +249,15 @@ function ResultadosContent() {
             </Text>
           </Box>
         </Flex>
-        <Button size="sm" variant="outline" onClick={() => router.push('/')}>
-          Nova Busca
+
+        {/* 🌟 3. BOTÃO VERDE CONECTADO AO MODAL DE FILTRO */}
+        <Button 
+          size="md" 
+          variant="solid" 
+          onClick={() => setIsFilterOpen(true)}
+          className={css({ width: '60px', bg: '#547812', color: 'white', _hover: { bg: '#43610e' } })}
+        >
+          <ManageSearch />
         </Button>
       </Flex>
 
@@ -268,15 +270,26 @@ function ResultadosContent() {
         <Flex direction="column" align="center" justify="center" py="16" bg="gray.50" borderRadius="2xl">
           <Text size="md" weight="bold" color="muted" mb="1">Nenhuma carona encontrada 😔</Text>
           <Text size="xs" color="muted" mb="4">Não encontramos motoristas para esse trajeto no momento.</Text>
-          <Button size="sm" onClick={() => router.push('/')}>Tentar outro destino</Button>
+          <Button size="sm" onClick={() => setIsFilterOpen(true)}>Alterar Filtros de Busca</Button>
         </Flex>
       ) : (
-        /* LISTA DE CARDS COMPACTOS (ESTILO DA SUA IMAGEM 1) */
+        /* LISTA DE CARDS COMPACTOS */
         <Flex direction="column" gap="3">
           {rides.map((ride) => {
             const destCity = getCityName(ride.destination);
             const origCity = getCityName(ride.origin);
             const priceVal = Number(ride.price || 0);
+
+            const vehicle = typeof ride?.vehicle === 'object' ? ride.vehicle : {};
+            const vehicleModel = vehicle?.model || 'Carona Parceira';
+            const rawPhoto = vehicle?.photo;
+
+            // IP adaptável para a rede Wi-Fi local ou Gateway
+            const BACKEND_BASE_URL = "http://10.41.89.110:8000"; 
+
+            const vehiclePhoto = rawPhoto 
+              ? (rawPhoto.startsWith('http') ? rawPhoto : `${BACKEND_BASE_URL}${rawPhoto}`)
+              : '/driver-placeholder.png';
 
             return (
               <div 
@@ -289,13 +302,14 @@ function ResultadosContent() {
                   fullWidth={true}
                   hasPadding={true}
                   Image={
-                    <Flex justify="center" align="center" w="56px" h="56px" bg="#f0f7e5" borderRadius="xl">
-                      <span style={{ fontSize: '28px' }}>🗺️</span>
-                    </Flex>
+                    <img 
+                      src={vehiclePhoto} 
+                      alt={vehicleModel} 
+                      className={css({ w: '56px', h: '56px', objectFit: 'cover', borderRadius: 'xl' })} 
+                    />
                   }
                   content={
                     <Flex direction="column" gap="1" flex="1" pl="3">
-                      {/* Vagas no topo esquerdo */}
                       <Flex align="center" gap="1">
                         <Group className={css({ color: 'gray.400', fontSize: '16px' })} />
                         <Text size="xs" color="muted" weight="medium">
@@ -303,12 +317,10 @@ function ResultadosContent() {
                         </Text>
                       </Flex>
 
-                      {/* Título com Destino Principal */}
                       <Text weight="bold" size="md" color="primary">
-                        Kiwidi Express - {destCity}
+                        {vehicleModel} - {destCity}
                       </Text>
                       
-                      {/* Trajeto Visual em Linha */}
                       <Flex direction="column" pl="1" mt="1">
                         <Flex align="center" gap="2">
                           <div className={css({ w: '6px', h: '6px', borderRadius: 'full', border: '1px solid', borderColor: 'gray.500' })} />
@@ -323,17 +335,15 @@ function ResultadosContent() {
                   }
                   extraContent={
                     <Flex direction="column" align="end" justify="space-between" height="100%" minW="90px">
-                      {/* Preço ou Grátis no topo direito */}
                       <Text weight="bold" color="success" size="lg">
                         {priceVal === 0 ? 'Grátis' : `R$ ${priceVal.toFixed(2)}`}
                       </Text>
 
-                      {/* Botão Escuro 'Participar' na base direita */}
                       <Button 
                         width='full'
                         className={css({ bg: '#242424', color: 'white', borderRadius: 'xl', px: '4', py: '1.5', _hover: { bg: 'black' } })}
                         onClick={(e) => {
-                          e.stopPropagation(); // Evita clique duplo na div
+                          e.stopPropagation();
                           setSelectedRide(ride);
                         }}
                       >
@@ -348,7 +358,22 @@ function ResultadosContent() {
         </Flex>
       )}
 
-      {/* MODAL DE DETALHES COMPLETO DA VIAGEM */}
+      {/* 🌟 MODAL 1: FILTROS DE PESQUISA */}
+      <Modal 
+        isOpen={isFilterOpen} 
+        onClose={() => setIsFilterOpen(false)}
+        title="Filtros de Pesquisa"
+      >
+        <SearchFilterForm 
+          onClose={() => setIsFilterOpen(false)} 
+          onApply={(formFilters: any) => {
+            setIsFilterOpen(false);
+            fetchRides(formFilters); // Filtra os resultados instantaneamente sem recarregar a tela!
+          }}
+        />
+      </Modal>
+
+      {/* MODAL 2: DETALHES COMPLETO DA VIAGEM */}
       <Modal 
         isOpen={!!selectedRide} 
         onClose={() => setSelectedRide(null)}
@@ -359,7 +384,7 @@ function ResultadosContent() {
             ride={selectedRide}
             onClose={() => setSelectedRide(null)}
             onSuccess={() => {
-              fetchRides(); // Recarrega a lista para atualizar o número de vagas no card
+              fetchRides();
             }}
           />
         )}
@@ -369,7 +394,7 @@ function ResultadosContent() {
   );
 }
 
-// 3. EXPORT PRINCIPAL COM PROTEÇÃO DE SUSPENSE (Obrigatório no Next.js)
+// 3. EXPORT PRINCIPAL COM PROTEÇÃO DE SUSPENSE
 export default function ResultadosPage() {
   return (
     <Suspense fallback={<Flex justify="center" align="center" height="100vh"><Text color="muted">Carregando...</Text></Flex>}>

@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useEffect, useState } from "react";
 import { FrameComponent } from "@/components/organisms";
@@ -8,34 +8,72 @@ import { Avatar } from '@/components/atoms/presentation';
 import { CardComponent } from '@/components/molecules';
 import { Icon } from '@/components/atoms/presentation';
 import { useRouter } from "next/navigation";
+
+// Serviços
 import { chatService, ChatRoomData } from "@/services/chat_service";
+import { RideService } from "@/services/ride/rideService";
+
+// Interface para a sala enriquecida com os dados do Ride Service
+interface EnrichedChatRoom extends ChatRoomData {
+  rideReal?: any;
+}
 
 export default function ChatListPage() {
   const router = useRouter();
-  const [rooms, setRooms] = useState<ChatRoomData[]>([]);
+  const [rooms, setRooms] = useState<EnrichedChatRoom[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function carregarSalas() {
+    async function carregarSalasEDadosDaCarona() {
       try {
         setLoading(true);
-        const salasReais = await chatService.getRooms();
-        setRooms(salasReais);
+        // 1. Busca as salas brutas no Chat Service
+        const salasBrutas = await chatService.getRooms();
+
+        // 2. Para cada sala, busca os dados reais da carona no Ride Service usando o carona_id
+        const salasEnriquecidas = await Promise.all(
+          salasBrutas.map(async (room) => {
+            try {
+              if (!room.carona_id) return room;
+              
+              const resRide = await RideService.getById(String(room.carona_id));
+              return {
+                ...room,
+                rideReal: resRide.data // Anexa o objeto Ride inteiro retornado pelo Django
+              };
+            } catch (err) {
+              console.warn(`⚠️ Não foi possível carregar detalhes da carona ${room.carona_id}`, err);
+              return room; // Se der erro em uma carona específica, retorna a sala sem quebrar a tela
+            }
+          })
+        );
+
+        setRooms(salasEnriquecidas);
       } catch (error) {
-        console.error("Erro ao buscar salas de chat do backend:", error);
+        console.error("❌ Erro geral ao carregar salas de chat:", error);
       } finally {
         setLoading(false);
       }
     }
 
-    carregarSalas();
+    carregarSalasEDadosDaCarona();
   }, []);
+
+  // 🌟 FUNÇÃO AUXILIAR: Extrai o nome da cidade do JSONField do Django (ou string)
+  const getLocationName = (loc: any) => {
+    if (!loc) return "---";
+    if (typeof loc === "string") return loc;
+    if (typeof loc === "object") {
+      return loc.city || loc.cidade || loc.state || loc.estado || "---";
+    }
+    return "---";
+  };
 
   if (loading) {
     return (
       <FrameComponent>
         <Flex justify="center" align="center" height="50vh">
-          <Text color="muted">Carregando suas conversas...</Text>
+          <Text color="muted" weight="bold">Carregando suas conversas e trajetos...</Text>
         </Flex>
       </FrameComponent>
     );
@@ -56,29 +94,32 @@ export default function ChatListPage() {
     <FrameComponent>
       <Flex direction="column" gap="3">
         {rooms.map((room) => {
-          const driverName = room.driver?.name || "Motorista";
-          
-          // Mantido fixo a foto do Pablo por enquanto
-          const driverAvatar = "/cliente.jpeg";
-          
-          // Mapeia dinamicamente tanto chaves em inglês quanto em português do Django
-          const localOrigem = room.origin || (room as any).origem || (room as any).carona?.origem || "Encanto";
-          const localDestino = room.destination || (room as any).destino || (room as any).carona?.destino || "São Paulo";
+          const ride = room.rideReal || {};
 
+          // 1. Extrai o motorista a partir dos dados do RideService ou do ChatService
+          const vehicle = typeof ride.vehicle === 'object' ? ride.vehicle : (ride.vehicle_detail || {});
+          const driver = typeof vehicle.user === 'object' ? vehicle.user : (vehicle.user_detail || room.driver || {});
+          
+          const driverName = driver.name || (room as any).motorista?.name || "Motorista Parceiro";
+          const driverAvatar = driver.photo || driver.avatar || "/driver-placeholder.png";
+
+          // 2. Extrai Origem e Destino do campo JSONField do Ride Service
+          const localOrigem = getLocationName(ride.origin || room.origin || (room as any).origem);
+          const localDestino = getLocationName(ride.destination || room.destination || (room as any).destino);
+
+          // 3. Formatação do horário real da viagem (start_time do Ride Service)
           const formatTime = (isoString: string) => {
             try {
-              if (!isoString) {
-                return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-              }
+              if (!isoString) return "--:--";
               const date = new Date(isoString);
-              if (isNaN(date.getTime())) {
-                return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-              }
+              if (isNaN(date.getTime())) return "--:--";
               return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             } catch {
               return "--:--";
             }
           };
+
+          const rawStartTime = ride.start_time || room.start_time || (room as any).data_partida;
 
           return (
             <CardComponent 
@@ -102,7 +143,7 @@ export default function ChatListPage() {
               extraContent={
                 <Flex direction='column' align='flex-end' justify="center">
                   <Text color='muted' size="xs">
-                    {formatTime(room.start_time || (room as any).data_partida)}
+                    {formatTime(rawStartTime)}
                   </Text>
                   <Icon></Icon>
                 </Flex>

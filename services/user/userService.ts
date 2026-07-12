@@ -21,6 +21,11 @@ export const UserService = {
     return api.post('/api/profile/complete/', data);
   },
 
+  // 🌟 NOVO ENDPOINT: Transiciona o usuário para motorista imediatamente no Django
+  becomeDriver: (userId: string) => {
+    return api.patch(`/api/users/${userId}/`, { is_driver: true });
+  },
+
   // ==========================================
   // AUTENTICAÇÃO E REGISTRO
   // ==========================================
