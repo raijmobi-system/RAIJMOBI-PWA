@@ -62,7 +62,6 @@ function ConversationContent() {
 
   useEffect(() => {
     if (!caronaId) {
-      //eslint-disable-next-line
       setError('ID da carona não fornecido.');
       setLoading(false);
       return;
@@ -80,13 +79,11 @@ function ConversationContent() {
         if (roomData?.driver?.id) idsParaBuscar.push(roomData.driver.id);
         
         const formattedHistory: MessageData[] = historicalData.map((msg) => {
-          const userIdFromMsg = msg.usuario?.id || '';
-          if (userIdFromMsg) idsParaBuscar.push(userIdFromMsg);
-          
+          const userIdFromMsg = String(msg.usuario?.id || '');
           return {
             message: msg.conteudo,
             usuario_id: userIdFromMsg,
-            is_me: userIdFromMsg !== '' && userIdFromMsg === currentUserId,
+            is_me: userIdFromMsg !== '' && userIdFromMsg === String(currentUserId),
             data_envio: msg.data_envio,
           };
         });
@@ -101,7 +98,7 @@ function ConversationContent() {
           (newData: MessageData) => {
             const messageWithAuth: MessageData = {
               ...newData,
-              is_me: newData.usuario_id === currentUserId || newData.is_me
+              is_me: String(newData.usuario_id) === String(currentUserId) || newData.is_me
             };
 
             // Se for alguém novo mandando mensagem, busca a foto dele
@@ -188,78 +185,81 @@ function ConversationContent() {
   }
 
   return (
-    <Flex direction="column" height="100vh" width="100%" bg="#f9f9f9" overflow="hidden">
-      
-      {/* 🌟 HEADER INTEGRADO COM DADOS REAIS DO GRUPO */}
-      <MessageHeader 
-        driverName={roomInfo?.driver?.name || "Motorista Parceiro"}
-        routeInfo={routeString}
-        avatarUrl={driverAvatarUrl}
-        onBack={() => router.push('/chat')}
-      />
+    <FrameComponent>
+      {roomInfo && (
+        <Flex
+          direction="row"
+          align="center"
+          gap="3"
+          className={css({ p: '4', bg: 'gray.50', borderBottom: '1px solid', borderColor: 'gray.200' })}
+        >
+          <Avatar src="/driver-placeholder.png" />
+          <Flex direction="column">
+            <Text weight="bold">{roomInfo.driver?.name || "Motorista"}</Text>
+            <Text size="xs" color="muted">Preço da vaga: {roomInfo.price}</Text>
+          </Flex>
+        </Flex>
+      )}
 
-      {/* ÁREA DE MENSAGENS COM ROLAGEM */}
-      <Flex direction="column" gap="3" className={css({ p: '4', flex: '1', overflowY: 'auto' })}>
+      <Flex direction="column" gap="3" className={css({ p: '4', overflowY: 'auto', minHeight: '60vh' })}>
         {messages.map((msg, index) => {
-          const senderPhoto = avatarMap[msg.usuario_id] || '/driver-placeholder.png';
+          const isMyMessage = msg.is_me || (msg.usuario_id && String(msg.usuario_id) === String(currentUserId));
 
           return (
             <Flex
               key={index}
-              direction="row"
-              gap="2"
-              align="flex-end"
+              direction="column"
               className={css({
-                alignSelf: msg.is_me ? 'flex-end' : 'flex-start',
-                maxWidth: '85%',
+                maxWidth: '75%',
+                p: '3',
+                borderRadius: 'xl',
+                alignSelf: isMyMessage ? 'flex-end' : 'flex-start',
+                bg: isMyMessage ? '#4c6b12' : '#f3f4f6', 
+                color: isMyMessage ? 'white' : 'gray.800',
+                border: isMyMessage ? 'none' : '1px solid',
+                borderColor: 'gray.200',
               })}
             >
-              {/* 🌟 EXIBE A FOTO APENAS PARA AS MENSAGENS DOS OUTROS (ESQUERDA) */}
-              {!msg.is_me && (
-                <Avatar src={senderPhoto} size="sm" />
-              )}
-
-              <Flex
-                direction="column"
-                className={css({
-                  p: '3.5',
-                  borderRadius: '2xl',
-                  borderBottomLeftRadius: !msg.is_me ? '2px' : '2xl',
-                  borderBottomRightRadius: msg.is_me ? '2px' : '2xl',
-                  bg: msg.is_me ? '#547812' : 'white',
-                  color: msg.is_me ? 'white' : 'gray.800',
-                  boxShadow: 'sm',
-                  border: msg.is_me ? 'none' : '1px solid',
-                  borderColor: 'gray.200',
-                })}
-              >
-                <Text className={css({ fontSize: 'sm', color: 'inherit', lineHeight: '1.4' })}>
-                  {msg.message}
-                </Text>
-              </Flex>
-
-              {/* 🌟 EXIBE A FOTO PARA AS SUAS PRÓPRIAS MENSAGENS (DIREITA) */}
-              {msg.is_me && (
-                <Avatar src={senderPhoto} size="sm" />
-              )}
+              <Text className={css({ fontSize: 'sm', color: 'inherit' })}>{msg.message}</Text>
             </Flex>
           );
         })}
         <div ref={chatEndRef} />
       </Flex>
 
-      {/* BARRA DE DIGITAÇÃO FIXA NO RODAPÉ */}
-      <form onSubmit={handleSend} className={css({ p: '3', bg: 'white', borderTop: '1px solid', borderColor: 'gray.200', width: '100%' })}>
-        <Flex direction="row" gap="2" align="center">
+      <form onSubmit={handleSend} className={css({ p: '4', bg: 'white', borderTop: '1px solid', borderColor: 'gray.200' })}>
+        <Flex direction="row" gap="3" align="center" width="full">
           <input
             type="text"
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
-            placeholder="Escreva sua mensagem no grupo..."
-            className={css({ flex: '1', px: '4', py: '2.5', border: '1px solid', borderColor: 'gray.300', borderRadius: 'full', fontSize: 'sm', outline: 'none', _focus: { borderColor: '#547812' } })}
+            placeholder="Escreva sua mensagem aqui..."
+            className={css({ 
+              flex: '1', 
+              minWidth: '0', 
+              px: '4', 
+              py: '2.5', 
+              border: '1px solid', 
+              borderColor: 'gray.300', 
+              borderRadius: 'lg',
+              fontSize: 'sm'
+            })}
           />
-          <IconButton type="submit" variant="detail" className={css({ borderRadius: 'full', w: '42px', h: '42px', bg: '#547812', flexShrink: 0 })}>
-            <span style={{ color: 'white', fontSize: '18px', fontWeight: 'bold' }}>➤</span>
+          <IconButton 
+            type="submit" 
+            style={{ 
+              backgroundColor: '#4c6b12', 
+              paddingLeft: '16px', 
+              paddingRight: '16px', 
+              height: '40px', 
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0 
+            }}
+          >
+            <Text color="white" weight="bold" size="sm">Enviar</Text>
           </IconButton>
         </Flex>
       </form>
@@ -267,7 +267,6 @@ function ConversationContent() {
   );
 }
 
-// Envelopamento obrigatório para o App Router
 export default function ConversationPage() {
   return (
     <Suspense fallback={
