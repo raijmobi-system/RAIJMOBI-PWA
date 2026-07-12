@@ -31,7 +31,6 @@ function ConversationContent() {
 
   useEffect(() => {
     if (!caronaId) {
-      //eslint-disable-next-line
       setError('ID da carona não fornecido.');
       setLoading(false);
       return;
@@ -45,11 +44,11 @@ function ConversationContent() {
         const historicalData = await chatService.getHistoricalMessages(caronaId);
 
         const formattedHistory: MessageData[] = historicalData.map((msg) => {
-          const userIdFromMsg = msg.usuario?.id || '';
+          const userIdFromMsg = String(msg.usuario?.id || '');
           return {
             message: msg.conteudo,
             usuario_id: userIdFromMsg,
-            is_me: userIdFromMsg !== '' && userIdFromMsg === currentUserId,
+            is_me: userIdFromMsg !== '' && userIdFromMsg === String(currentUserId),
             data_envio: msg.data_envio,
           };
         });
@@ -61,7 +60,7 @@ function ConversationContent() {
           (newData: MessageData) => {
             const messageWithAuth: MessageData = {
               ...newData,
-              is_me: newData.usuario_id === currentUserId || newData.is_me
+              is_me: String(newData.usuario_id) === String(currentUserId) || newData.is_me
             };
 
             setMessages((prev) => {
@@ -149,38 +148,64 @@ function ConversationContent() {
       )}
 
       <Flex direction="column" gap="3" className={css({ p: '4', overflowY: 'auto', minHeight: '60vh' })}>
-        {messages.map((msg, index) => (
-          <Flex
-            key={index}
-            direction="column"
-            className={css({
-              maxWidth: '75%',
-              p: '3',
-              borderRadius: 'xl',
-              alignSelf: msg.is_me ? 'flex-end' : 'flex-start',
-              bg: msg.is_me ? 'emerald.500' : 'white',
-              color: msg.is_me ? 'white' : 'gray.800',
-              border: msg.is_me ? 'none' : '1px solid',
-              borderColor: 'gray.100',
-            })}
-          >
-            <Text className={css({ fontSize: 'sm', color: 'inherit' })}>{msg.message}</Text>
-          </Flex>
-        ))}
+        {messages.map((msg, index) => {
+          const isMyMessage = msg.is_me || (msg.usuario_id && String(msg.usuario_id) === String(currentUserId));
+
+          return (
+            <Flex
+              key={index}
+              direction="column"
+              className={css({
+                maxWidth: '75%',
+                p: '3',
+                borderRadius: 'xl',
+                alignSelf: isMyMessage ? 'flex-end' : 'flex-start',
+                bg: isMyMessage ? '#4c6b12' : '#f3f4f6', 
+                color: isMyMessage ? 'white' : 'gray.800',
+                border: isMyMessage ? 'none' : '1px solid',
+                borderColor: 'gray.200',
+              })}
+            >
+              <Text className={css({ fontSize: 'sm', color: 'inherit' })}>{msg.message}</Text>
+            </Flex>
+          );
+        })}
         <div ref={chatEndRef} />
       </Flex>
 
       <form onSubmit={handleSend} className={css({ p: '4', bg: 'white', borderTop: '1px solid', borderColor: 'gray.200' })}>
-        <Flex direction="row" gap="2">
+        <Flex direction="row" gap="3" align="center" width="full">
           <input
             type="text"
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             placeholder="Escreva sua mensagem aqui..."
-            className={css({ flex: '1', px: '4', py: '2', border: '1px solid', borderColor: 'gray.300', borderRadius: 'lg' })}
+            className={css({ 
+              flex: '1', 
+              minWidth: '0', 
+              px: '4', 
+              py: '2.5', 
+              border: '1px solid', 
+              borderColor: 'gray.300', 
+              borderRadius: 'lg',
+              fontSize: 'sm'
+            })}
           />
-          <IconButton type="submit" variant="detail">
-            <Text color="white" weight="bold">Enviar</Text>
+          <IconButton 
+            type="submit" 
+            style={{ 
+              backgroundColor: '#4c6b12', 
+              paddingLeft: '16px', 
+              paddingRight: '16px', 
+              height: '40px', 
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0 
+            }}
+          >
+            <Text color="white" weight="bold" size="sm">Enviar</Text>
           </IconButton>
         </Flex>
       </form>
@@ -188,7 +213,6 @@ function ConversationContent() {
   );
 }
 
-// 🌟 EXPORT PRINCIPAL CORRIGIDO: Envolve o conteúdo com Suspense para autorizar o build estático
 export default function ConversationPage() {
   return (
     <Suspense fallback={
