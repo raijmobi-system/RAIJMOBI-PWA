@@ -31,7 +31,7 @@ export function useGoogleAuth() {
       }
 
       // 3. Envia o token para o seu back-end Django
-      const responseApi = await fetch('localhost:8000/api/auth/google/', {
+      const responseApi = await fetch('http://localhost:8000/api/auth/google/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

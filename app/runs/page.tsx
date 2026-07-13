@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Flex } from '@/styled-system/jsx';
+import { Flex, Box } from '@/styled-system/jsx';
 import { css } from "@/styled-system/css"; 
 
 // Ferramentas Nativas do Capacitor + JWT
@@ -15,7 +15,7 @@ import { FrameComponent } from "@/components/organisms";
 import { Text } from '@/components/atoms/typography';
 import { CardComponent } from '@/components/molecules';
 import Modal from "@/components/fixed/Modal"; 
-import RatingModal from "@/components/template/RatingModal"; // 🌟 Importando o seu template de notas
+import RatingModal from "@/components/template/RatingModal"; 
 
 // Serviços Reais da API
 import { api } from '@/services/InterceptRequisition';
@@ -32,6 +32,28 @@ import {
 } from '@material-symbols-svg/react';
 
 type TabType = 'passageiro' | 'motorista';
+
+/* =========================================
+   COMPONENTE AUXILIAR: BANNER DE FEEDBACK EM TELA
+========================================= */
+const FeedbackBanner = ({ type, message }: { type: 'success' | 'error' | null, message: string | null }) => {
+  if (!type || !message) return null;
+  const isSuccess = type === 'success';
+  return (
+    <Box 
+      p="3" 
+      mb="3" 
+      borderRadius="xl"
+      border="1px solid"
+      bg={isSuccess ? "#f0f7e5" : "red.50"} 
+      borderColor={isSuccess ? "#cce5a3" : "red.200"}
+    >
+      <Text size="sm" color={isSuccess ? "success" : "danger"} weight="medium">
+        {isSuccess ? "✓ " : "✕ "} {message}
+      </Text>
+    </Box>
+  );
+};
 
 /* =========================================
    COMPONENTE AUXILIAR: TRAJETO VISUAL
@@ -62,7 +84,7 @@ interface RideDetailsProps {
   onClose: () => void;
   onEditClick: (ride: any) => void;
   onSuccessCancel: () => void;
-  onRatingClick?: (item: any) => void; // 🌟 Propriedade para disparar a avaliação
+  onRatingClick?: (item: any) => void;
 }
 
 const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel, onRatingClick }: RideDetailsProps) => {
@@ -72,12 +94,24 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
   const [pagando, setPagando] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false); 
 
+  // 🌟 ESTADOS LOCAIS PARA SUBSTITUIR OS ALERTS DENTRO DO MODAL
+  const [feedbackType, setFeedbackType] = useState<'success' | 'error' | null>(null);
+  const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
+
   const ride = role === 'passageiro' ? item.ride : item;
   const reservationId = role === 'passageiro' ? item.id : null;
   const reservationStatus = role === 'passageiro' && item?.status ? String(item.status).toLowerCase() : null;
 
   const isLocked = ['em_andamento', 'finalizada'].includes(ride?.status?.toLowerCase());
   const isAlreadyCanceled = reservationStatus === 'cancelada';
+
+  const clearFeedbackAfterDelay = (callback?: () => void) => {
+    setTimeout(() => {
+      setFeedbackType(null);
+      setFeedbackMsg(null);
+      if (callback) callback();
+    }, 1800);
+  };
 
   // LÓGICA DE INICIAR OU TERMINAR CARONA (Apenas Motorista)
   const handleUpdateRideStatus = async (newStatus: 'em_andamento' | 'finalizada') => {
@@ -89,14 +123,19 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
 
     if (window.confirm(confirmMessage)) {
       setUpdatingStatus(true);
+      setFeedbackType(null);
       try {
         await RideService.update(String(ride.id), { status: newStatus });
-        alert(`Carona ${newStatus === 'em_andamento' ? 'iniciada' : 'finalizada'} com sucesso!`);
-        onClose();
-        onSuccessCancel(); 
+        setFeedbackType('success');
+        setFeedbackMsg(`Carona ${newStatus === 'em_andamento' ? 'iniciada' : 'finalizada'} com sucesso!`);
+        clearFeedbackAfterDelay(() => {
+          onClose();
+          onSuccessCancel();
+        });
       } catch (error) {
         console.error("Erro ao atualizar status da carona:", error);
-        alert("Não foi possível atualizar o status da carona. Tente novamente.");
+        setFeedbackType('error');
+        setFeedbackMsg("Não foi possível atualizar o status da carona. Tente novamente.");
       } finally {
         setUpdatingStatus(false);
       }
@@ -110,15 +149,20 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
     const confirm = window.confirm("Deseja realmente cancelar sua participação nesta carona? Suas vagas serão liberadas no sistema.");
     if (confirm) {
       setCanceling(true);
+      setFeedbackType(null);
       try {
         await ReservationService.updateStatus(String(reservationId), 'cancelada');
-        alert("Participação cancelada com sucesso!");
-        onClose();
-        onSuccessCancel(); 
+        setFeedbackType('success');
+        setFeedbackMsg("Participação cancelada com sucesso!");
+        clearFeedbackAfterDelay(() => {
+          onClose();
+          onSuccessCancel();
+        });
       } catch (error: any) {
-        console.error("Erro real na API ao cancelar reserva:", error);
+        console.error("Erro na API ao cancelar reserva:", error);
         const errorMsg = error.response?.data?.detail || JSON.stringify(error.response?.data) || "Erro ao conectar com o servidor.";
-        alert(`Falha no cancelamento: ${errorMsg}`);
+        setFeedbackType('error');
+        setFeedbackMsg(`Falha no cancelamento: ${errorMsg}`);
       } finally {
         setCanceling(false);
       }
@@ -130,17 +174,22 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
     if (!reservationId) return;
 
     setPagando(true);
+    setFeedbackType(null);
     try {
       const sucesso = await StripePaymentServiceFront.executarPagamento(reservationId);
       if (sucesso) {
-        alert("✅ Pagamento aprovado com sucesso!");
-        onClose();
-        onSuccessCancel(); 
+        setFeedbackType('success');
+        setFeedbackMsg("Pagamento aprovado com sucesso!");
+        clearFeedbackAfterDelay(() => {
+          onClose();
+          onSuccessCancel();
+        });
       }
     } catch (error: any) {
       console.error("Erro no checkout:", error);
       const msg = error.response?.data?.error || error.message || "Não foi possível iniciar o pagamento.";
-      alert(`Erro: ${msg}`);
+      setFeedbackType('error');
+      setFeedbackMsg(`Erro: ${msg}`);
     } finally {
       setPagando(false);
     }
@@ -150,6 +199,9 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
 
   return (
     <Flex direction="column" gap="4">
+      {/* 🌟 EXIBIÇÃO DE MENSAGENS EM TELA DENTRO DO MODAL */}
+      <FeedbackBanner type={feedbackType} message={feedbackMsg} />
+
       <Flex direction='row' justifyContent='space-between'>
         <Flex className={css({ background: '#f0f7e5' })} padding='4px 10px' borderRadius='10px' gap='10px'>
           <Percent className={css({ color: '#547812', fontSize: '20px' })} />
@@ -181,8 +233,6 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
       />
 
       <Flex direction="column" gap="2" mt="2">
-        
-        {/* BOTÃO DE MAPA DINÂMICO UNIFICADO E HIGIENIZADO */}
         <Button 
           width='full' 
           onClick={() => {
@@ -191,9 +241,7 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
           }} 
           className={css({ bg: '#3b82f6' })} 
         >
-          <Text color='white' weight='bold'>
-            Acompanhar Rota no Mapa
-          </Text>
+          <Text color='white' weight='bold'>Acompanhar Rota no Mapa</Text>
         </Button>
 
         {role === 'motorista' ? (
@@ -218,9 +266,7 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
                   variant="outline"
                   className={css({ borderColor: 'primary' })}
                 >
-                  <Text color='primary' weight='bold'>
-                    Editar Detalhes
-                  </Text>
+                  <Text color='primary' weight='bold'>Editar Detalhes</Text>
                 </Button>
               </>
             )}
@@ -248,7 +294,6 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
           </>
         ) : (
           <>
-            {/* 🌟 GATILHO: Se a carona foi encerrada, exibe o botão destacado para avaliar */}
             {ride.status?.toLowerCase() === 'finalizada' && reservationStatus === 'confirmada' && (
               <Button
                 width="full"
@@ -262,7 +307,6 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
               </Button>
             )}
 
-            {/* Fluxo de pagamento do stripe se pendente */}
             {!isAlreadyCanceled && reservationStatus === 'pendente' && (
               <Button
                 width="full"
@@ -312,11 +356,13 @@ function RunsContent() {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
-  // 🌟 Estados para o controle de avaliação
+  // 🌟 ESTADOS PARA MENSAGENS DE FEEDBACK EXTERNAS (PAGAMENTO WEB RETORNO)
+  const [screenFeedbackType, setScreenFeedbackType] = useState<'success' | 'error' | null>(null);
+  const [screenFeedbackMsg, setScreenFeedbackMsg] = useState<string | null>(null);
+
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingData, setRatingData] = useState({ reservationId: '', driverId: '', driverName: '' });
 
-  // Chamadas da API envelopadas em useCallback para evitar loops de re-render
   const fetchItems = useCallback(async (pageNumber: number, tab: TabType) => {
     setLoading(true);
     try {
@@ -368,15 +414,25 @@ function RunsContent() {
       if (paymentStatus === 'success' && reservationId) {
         try {
           await api.patch(`api/ride/reservations/${reservationId}/`, { status: 'confirmada' });
-          alert("✅ Pagamento aprovado via Web com sucesso!");
+          setScreenFeedbackType('success');
+          setScreenFeedbackMsg("Pagamento aprovado via Web com sucesso!");
           router.replace('/runs');
           reloadCurrentTab();
         } catch (error) {
           console.error("Erro ao confirmar reserva paga via web:", error);
         }
       } else if (paymentStatus === 'cancel') {
-        alert("❌ O pagamento foi cancelado pelo usuário.");
+        setScreenFeedbackType('error');
+        setScreenFeedbackMsg("O pagamento via web foi cancelado pelo usuário.");
         router.replace('/runs');
+      }
+      
+      // Limpa a mensagem da tela após 4 segundos
+      if (paymentStatus) {
+        setTimeout(() => {
+          setScreenFeedbackType(null);
+          setScreenFeedbackMsg(null);
+        }, 4000);
       }
     };
 
@@ -443,6 +499,9 @@ function RunsContent() {
       >
         <Flex direction="column" paddingY="4" gap="4">
           
+          {/* 🌟 BANNER DE FEEDBACK PARA RETORNO DE SESSÕES WEB DO STRIPE */}
+          <FeedbackBanner type={screenFeedbackType} message={screenFeedbackMsg} />
+
           {activeTab === 'motorista' && (
             <Button 
               onClick={() => router.push('/runs/create')}
@@ -532,7 +591,7 @@ function RunsContent() {
         )}
       </Modal>
 
-      {/* 🌟 MODAL DE NOTAS INTERATIVO COMPLEMENTAR */}
+      {/* MODAL DE NOTAS INTERATIVO COMPLEMENTAR */}
       <RatingModal
         isOpen={showRatingModal}
         onClose={() => setShowRatingModal(false)}
@@ -540,8 +599,13 @@ function RunsContent() {
         driverId={ratingData.driverId}
         driverName={ratingData.driverName}
         onSuccess={() => {
-          alert("Obrigado por avaliar o motorista parceiro!");
+          setScreenFeedbackType('success');
+          setScreenFeedbackMsg("Obrigado por avaliar o motorista parceiro!");
           reloadCurrentTab();
+          setTimeout(() => {
+            setScreenFeedbackType(null);
+            setScreenFeedbackMsg(null);
+          }, 3500);
         }}
       />
 
@@ -550,7 +614,7 @@ function RunsContent() {
 }
 
 /* ====================================================
-   EXPORT PRINCIPAL (Com proteção de hidratação e Suspense)
+   EXPORT PRINCIPAL 
 ====================================================== */
 export default function Runs() {
   return (

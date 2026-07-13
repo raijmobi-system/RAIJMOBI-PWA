@@ -23,7 +23,7 @@ class ChatSocketService {
 
     // 1. Corrigindo o endpoint base para apontar exatamente para o ws/chat do Django Channels
    const cleanWsUrl = "ws://localhost:8000/ws/chat";
-    
+
     let token = null;
     try {
       const { value } = await SecureStoragePlugin.get({ key: 'access_token' });

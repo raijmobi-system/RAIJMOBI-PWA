@@ -11,11 +11,12 @@ import { Avatar } from '@/components/atoms/presentation';
 // Componentes Reutilizáveis do Projeto
 import CardComponent from '@/components/molecules/CardComponent';
 import Modal from '@/components/fixed/Modal';
-import { SearchFilterForm } from '@/components/template/SearchFilterForm'; // 🌟 1. IMPORTADO O FORMULÁRIO DE FILTRO
+import { SearchFilterForm } from '@/components/template/SearchFilterForm';
 
 // Serviços da API
 import { RideService } from '@/services/ride/rideService';
 import { ReservationService } from '@/services/ride/reservationService';
+import { VehicleService } from '@/services/ride/vehicleService'; // 🌟 Importado para buscar dados do veículo
 
 // Ícones
 import { 
@@ -28,22 +29,65 @@ import {
   ManageSearch
 } from '@material-symbols-svg/react';
 
+const GATEWAY_URL = 'http://localhost:8000'; // Altere para o seu IP/Domínio público de produção quando necessário
+
+/* ==========================================================================
+   🌟 FUNÇÃO BLINDADA DE RESOLUÇÃO DE URL DE IMAGENS
+   Intercepta qualquer formato de URL do Django/Docker e aponta para o Gateway
+   ========================================================================== */
+const getImageUrl = (rawPhoto: string | null | undefined, defaultFolder: string = 'vehicles'): string | null => {
+  if (!rawPhoto || typeof rawPhoto !== 'string') return null;
+
+  const cleanPhoto = rawPhoto.trim();
+  if (!cleanPhoto) return null;
+
+  // 1. Se contém /media/ ou media/ em qualquer parte (ex: http://ride-service:8000/media/vehicles/foto.jpg)
+  // Cortamos tudo que vem antes e forçamos o uso do GATEWAY_URL público!
+  const mediaIndex = cleanPhoto.indexOf('/media/');
+  if (mediaIndex !== -1) {
+    const mediaPath = cleanPhoto.substring(mediaIndex);
+    return `${GATEWAY_URL}${mediaPath}`;
+  }
+
+  const mediaIndexNoSlash = cleanPhoto.indexOf('media/');
+  if (mediaIndexNoSlash !== -1) {
+    const mediaPath = cleanPhoto.substring(mediaIndexNoSlash - 1);
+    return `${GATEWAY_URL}${mediaPath.startsWith('/') ? mediaPath : `/${mediaPath}`}`;
+  }
+
+  // 2. Se for uma URL externa legítima (Google, Facebook, AWS S3, etc) sem /media/
+  if (cleanPhoto.startsWith('http://') || cleanPhoto.startsWith('https://')) {
+    return cleanPhoto;
+  }
+
+  // 3. Se veio apenas o caminho relativo do banco de dados (ex: "vehicles/fordka.jpg")
+  const pathWithoutSlash = cleanPhoto.startsWith('/') ? cleanPhoto.slice(1) : cleanPhoto;
+  if (pathWithoutSlash.includes('/')) {
+    return `${GATEWAY_URL}/media/${pathWithoutSlash}`;
+  }
+
+  return `${GATEWAY_URL}/media/${defaultFolder}/${pathWithoutSlash}`;
+};
+
 /* ==========================================================================
    1. COMPONENTE: DETALHES COMPLETO DA CARONA (MODAL COM SELETOR DE VAGAS)
    ========================================================================== */
 interface RideDetailsProps {
   ride: any;
+  vehicleMap: Record<string, any>; // 🌟 Recebe o mapa com os veículos buscados
   onClose: () => void;
   onSuccess: () => void;
 }
 
-const RideDetailsContent = ({ ride, onClose, onSuccess }: RideDetailsProps) => {
+const RideDetailsContent = ({ ride, vehicleMap, onClose, onSuccess }: RideDetailsProps) => {
   const [requestedSeats, setRequestedSeats] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const vehicle = typeof ride?.vehicle === 'object' ? ride.vehicle : (ride?.vehicle_detail || {});
-  const driver = typeof vehicle?.user === 'object' ? vehicle.user : (vehicle?.user_detail || {});
+  // 🌟 Resolve o veículo buscando no mapa caso a API tenha mandado apenas a string do UUID
+  const vehicleId = typeof ride?.vehicle === 'string' ? ride.vehicle : ride?.vehicle?.id;
+  const vehicle = typeof ride?.vehicle === 'object' ? ride.vehicle : (vehicleId ? vehicleMap[vehicleId] : (ride?.vehicle_detail || {}));
+  const driver = typeof vehicle?.user === 'object' ? vehicle.user : (vehicle?.user_detail || (typeof ride?.driver === 'object' ? ride.driver : {}));
   
   const priceUnit = Number(ride?.price || 0);
   const totalPrice = priceUnit * requestedSeats;
@@ -91,7 +135,7 @@ const RideDetailsContent = ({ ride, onClose, onSuccess }: RideDetailsProps) => {
       </Flex>
 
       <Flex direction="row" gap="3" alignItems="center" p="3" bg="gray.50" borderRadius="xl">
-        <Avatar src={driver?.photo || '/driver-placeholder.png'} size="md" />
+        <Avatar src={getImageUrl(driver?.photo, 'avatars') || '/driver-placeholder.png'} size="md" />
         <Flex direction="column" flex="1">
           <Flex direction="row" alignItems="center" gap="1">
             <Text weight="bold" color="primary">{driver?.name || 'Motorista Parceiro'}</Text>
@@ -103,8 +147,20 @@ const RideDetailsContent = ({ ride, onClose, onSuccess }: RideDetailsProps) => {
 
       <Flex direction="column" gap="2" p="3" borderWidth="1px" borderColor="gray.100" borderRadius="xl">
         <Flex gap="2" align="center" className={css({ color: 'gray.500' })}>
-          <DirectionsCar /> <Text weight="bold" size="sm" color="primary">Veículo</Text>
+          <DirectionsCar /> <Text weight="bold" size="sm" color="primary">Veículo da Viagem</Text>
         </Flex>
+
+        {/* 🌟 Exibe a foto do veículo dentro do Modal de Detalhes se estiver disponível */}
+        {vehicle?.photo && (
+          <Flex justify="center" my="2">
+            <img 
+              src={getImageUrl(vehicle.photo, 'vehicles') || ''} 
+              alt={vehicle?.model || 'Veículo'} 
+              className={css({ maxH: '150px', w: 'full', objectFit: 'cover', borderRadius: 'lg', border: '1px solid', borderColor: 'gray.200' })} 
+            />
+          </Flex>
+        )}
+
         <Grid columns={2} gap="2" mt="1">
           <Box><Text size="xs" color="muted">Modelo</Text><Text size="sm" weight="medium">{vehicle?.model || 'Não informado'}</Text></Box>
           <Box><Text size="xs" color="muted">Cor</Text><Text size="sm" weight="medium">{vehicle?.color || 'Não informada'}</Text></Box>
@@ -196,31 +252,64 @@ function ResultadosContent() {
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedRide, setSelectedRide] = useState<any | null>(null);
 
-  // 🌟 2. ESTADO DE CONTROLE DO MODAL DE FILTROS
   const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
+  
+  // 🌟 ESTADO DO MAPA DE VEÍCULOS (Armazena { [id_do_veiculo]: objeto_completo })
+  const [vehicleMap, setVehicleMap] = useState<Record<string, any>>({});
 
   const originQuery = searchParams.get('origin') || '';
   const destinationQuery = searchParams.get('destination') || '';
 
-  // 🌟 FUNÇÃO ATUALIZADA: Agora aceita receber filtros extras do SearchFilterForm
+  // 🌟 FUNÇÃO QUE BUSCA VEÍCULOS NO FRONTEND (Contorna a limitação do Serializer no Backend)
+  const fetchVehicleDetails = useCallback(async (ridesList: any[]) => {
+    const idsToFetch = Array.from(
+      new Set(
+        ridesList
+          .map(r => (typeof r?.vehicle === 'string' ? r.vehicle : r?.vehicle?.id))
+          .filter(id => id && typeof id === 'string' && !vehicleMap[id])
+      )
+    );
+
+    if (idsToFetch.length === 0) return;
+
+    const newMap: Record<string, any> = {};
+    await Promise.all(
+      idsToFetch.map(async (id) => {
+        try {
+          const response = await VehicleService.getById(id);
+          newMap[id] = response.data;
+        } catch (err) {
+          console.warn(`Não foi possível carregar o veículo ${id}:`, err);
+          newMap[id] = { model: 'Veículo Parceiro', photo: null };
+        }
+      })
+    );
+
+    setVehicleMap(prev => ({ ...prev, ...newMap }));
+  }, [vehicleMap]);
+
   const fetchRides = useCallback(async (customFilters?: any) => {
     setLoading(true);
     try {
       const params: any = {
         origin: originQuery || undefined,
         destination: destinationQuery || undefined,
-        ...customFilters // Sobrescreve com os filtros aplicados no Modal
+        ...customFilters
       };
       const response = await RideService.getAll(params);
       const data = response.data;
+      const resultsList = data?.results || (Array.isArray(data) ? data : []);
       
-      setRides(data?.results || (Array.isArray(data) ? data : []));
+      setRides(resultsList);
+      
+      // 🌟 Dispara a busca dos dados de cada veículo assim que as viagens chegam!
+      fetchVehicleDetails(resultsList);
     } catch (err) {
       console.error("Erro ao buscar caronas:", err);
     } finally {
       setLoading(false);
     }
-  }, [originQuery, destinationQuery]);
+  }, [originQuery, destinationQuery, fetchVehicleDetails]);
 
   useEffect(() => {
     //eslint-disable-next-line
@@ -250,7 +339,6 @@ function ResultadosContent() {
           </Box>
         </Flex>
 
-        {/* 🌟 3. BOTÃO VERDE CONECTADO AO MODAL DE FILTRO */}
         <Button 
           size="md" 
           variant="solid" 
@@ -280,16 +368,12 @@ function ResultadosContent() {
             const origCity = getCityName(ride.origin);
             const priceVal = Number(ride.price || 0);
 
-            const vehicle = typeof ride?.vehicle === 'object' ? ride.vehicle : {};
-            const vehicleModel = vehicle?.model || 'Carona Parceira';
-            const rawPhoto = vehicle?.photo;
-
-            // IP adaptável para a rede Wi-Fi local ou Gateway
-            const BACKEND_BASE_URL = "http://10.41.89.110:8000"; 
-
-            const vehiclePhoto = rawPhoto 
-              ? (rawPhoto.startsWith('http') ? rawPhoto : `${BACKEND_BASE_URL}${rawPhoto}`)
-              : '/driver-placeholder.png';
+            // 🌟 RESOLUÇÃO DINÂMICA DO VEÍCULO: Verifica se veio objeto ou se busca no vehicleMap
+            const vehicleId = typeof ride?.vehicle === 'string' ? ride.vehicle : ride?.vehicle?.id;
+            const vehicle = typeof ride?.vehicle === 'object' ? ride.vehicle : (vehicleId ? vehicleMap[vehicleId] : (ride?.vehicle_detail || {}));
+            
+            const vehicleModel = vehicle?.model || 'Veículo Parceiro';
+            const vehiclePhoto = getImageUrl(vehicle?.photo, 'vehicles') || '/driver-placeholder.png';
 
             return (
               <div 
@@ -305,7 +389,7 @@ function ResultadosContent() {
                     <img 
                       src={vehiclePhoto} 
                       alt={vehicleModel} 
-                      className={css({ w: '56px', h: '56px', objectFit: 'cover', borderRadius: 'xl' })} 
+                      className={css({ w: '56px', h: '56px', objectFit: 'cover', borderRadius: 'xl', border: '1px solid', borderColor: 'gray.100' })} 
                     />
                   }
                   content={
@@ -358,7 +442,7 @@ function ResultadosContent() {
         </Flex>
       )}
 
-      {/* 🌟 MODAL 1: FILTROS DE PESQUISA */}
+      {/* MODAL 1: FILTROS DE PESQUISA */}
       <Modal 
         isOpen={isFilterOpen} 
         onClose={() => setIsFilterOpen(false)}
@@ -368,7 +452,7 @@ function ResultadosContent() {
           onClose={() => setIsFilterOpen(false)} 
           onApply={(formFilters: any) => {
             setIsFilterOpen(false);
-            fetchRides(formFilters); // Filtra os resultados instantaneamente sem recarregar a tela!
+            fetchRides(formFilters);
           }}
         />
       </Modal>
@@ -382,6 +466,7 @@ function ResultadosContent() {
         {selectedRide && (
           <RideDetailsContent 
             ride={selectedRide}
+            vehicleMap={vehicleMap}
             onClose={() => setSelectedRide(null)}
             onSuccess={() => {
               fetchRides();

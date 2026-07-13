@@ -6,25 +6,20 @@ import { css } from "@/styled-system/css";
 import { flex } from "@/styled-system/patterns";
 import { Flex, Box } from '@/styled-system/jsx';
 
-// 🌟 CORREÇÃO DE SINTAXE: O import estava no meio do arquivo! Movido para o topo.
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 
-// Importações dos seus componentes
 import FrameComponent from "@/components/organisms/FrameComponent";
 import LinkImage from "@/components/molecules/LinkImage";
 import CardComponent from "@/components/molecules/CardComponent";
 import Modal from "@/components/fixed/Modal";
 
-// Importações dos Átomos e Moléculas necessários
 import { Text } from '@/components/atoms/typography';
 import { Button } from '@/components/atoms/action'; 
 import { FormField } from '@/components/molecules/FormFIeld'; 
 
-// Importação do Serviço de Veículos e da Instância da API
 import { VehicleService, VehiclePayload } from '@/services/ride/vehicleService';
 import { api } from '@/services/InterceptRequisition';
 
-// Ícones do Material Symbols
 import {
   DirectionsCar,
   Commute,
@@ -34,11 +29,30 @@ import {
   CheckCircle
 } from "@material-symbols-svg/react";
 
-const GATEWAY_URL = 'http://localhost:8000';
+const GATEWAY_URL = 'http://localhost:8000'; // Centraliza a porta do Kong Gateway para entrega de mídias públicas
 
 /* ========================================================
-   FUNÇÃO GLOBAL
+   🌟 FUNÇÃO INTELIGENTE DE RESOLUÇÃO DE URL DE IMAGENS
 ======================================================== */
+/* ========================================================
+   🌟 FUNÇÃO INTELIGENTE DE RESOLUÇÃO DE URL DE IMAGENS (CORRIGIDA)
+======================================================== */
+const getImageUrl = (rawPhoto: string | null) => {
+  if (!rawPhoto) return null;
+  
+  // 1. Se o Django mandou a URL interna do Docker (ex: http://ride-service:8000/media/...)
+  if (rawPhoto.includes('ride-service:8000')) {
+    return rawPhoto.replace('http://ride-service:8000', GATEWAY_URL);
+  }
+  
+  // 2. Se já for uma URL externa válida (ex: login social do Google ou produção)
+  if (rawPhoto.startsWith('http')) return rawPhoto;
+  
+  // 3. Se for o caminho relativo padrão (ex: /media/vehicles/foto.jpg)
+  const relativePath = rawPhoto.startsWith('/') ? rawPhoto : `/${rawPhoto}`;
+  return `${GATEWAY_URL}${relativePath}`;
+};
+
 async function Logout(router: any) {
   await SecureStoragePlugin.remove({ key: 'access_token' });
   await SecureStoragePlugin.remove({ key: 'refresh_token' });
@@ -46,7 +60,7 @@ async function Logout(router: any) {
 }
 
 /* ========================================================
-   COMPONENTE: FORMULÁRIO DE VEÍCULO (FEEDBACK EM TELA)
+   COMPONENTE: FORMULÁRIO DE VEÍCULO
 ======================================================== */
 interface VehicleFormProps {
   onClose: () => void;
@@ -65,7 +79,11 @@ const VehicleForm = ({ onClose, vehicleToEdit, refreshList }: VehicleFormProps) 
   const [assentos, setAssentos] = useState<number | string>(vehicleToEdit?.seats || "");
   
   const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(vehicleToEdit?.photo || null);
+  
+  // 🌟 Normalização da foto do veículo recebida para edição
+  const [photoPreview, setPhotoPreview] = useState<string | null>(
+    vehicleToEdit?.photo ? getImageUrl(vehicleToEdit.photo) : null
+  );
   
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -178,30 +196,13 @@ const VehicleForm = ({ onClose, vehicleToEdit, refreshList }: VehicleFormProps) 
             Passo 1 de 2: Informações do Veículo
           </Text>
 
-          <FormField 
-            id="modelo" 
-            label="Modelo do veículo" 
-            placeholder="Ex: Honda Civic" 
-            value={modelo}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setModelo(e.target.value)}
-          />
-          
-          <FormField 
-            id="placa" 
-            label="Placa" 
-            placeholder="Ex: ABC-1234 ou ABC1D23" 
-            value={placa}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPlaca(e.target.value)}
-          />
+          <FormField id="modelo" label="Modelo do veículo" placeholder="Ex: Honda Civic" value={modelo} onChange={(e: any) => setModelo(e.target.value)} />
+          <FormField id="placa" label="Placa" placeholder="Ex: ABC-1234 ou ABC1D23" value={placa} onChange={(e: any) => setPlaca(e.target.value)} />
 
           <div className={flex({ gap: "3" })}>
             <div className={flex({ direction: "column", gap: "1", flex: 1 })}>
               <label className={css({ fontSize: "sm", fontWeight: "semibold", color: "gray.700" })}>Tipo</label>
-              <select 
-                value={tipo} 
-                onChange={(e) => setTipo(e.target.value as VehiclePayload['type_vehicle'])}
-                className={css({ p: "3", border: "1px solid", borderColor: "gray.300", borderRadius: "md", bg: "white", fontSize: "sm" })}
-              >
+              <select value={tipo} onChange={(e) => setTipo(e.target.value as VehiclePayload['type_vehicle'])} className={css({ p: "3", border: "1px solid", borderColor: "gray.300", borderRadius: "md", bg: "white", fontSize: "sm" })}>
                 <option value="carro">Carro</option>
                 <option value="moto">Moto</option>
               </select>
@@ -209,11 +210,7 @@ const VehicleForm = ({ onClose, vehicleToEdit, refreshList }: VehicleFormProps) 
 
             <div className={flex({ direction: "column", gap: "1", flex: 1 })}>
               <label className={css({ fontSize: "sm", fontWeight: "semibold", color: "gray.700" })}>Cor</label>
-              <select 
-                value={cor} 
-                onChange={(e) => setCor(e.target.value as VehiclePayload['color'])}
-                className={css({ p: "3", border: "1px solid", borderColor: "gray.300", borderRadius: "md", bg: "white", fontSize: "sm" })}
-              >
+              <select value={cor} onChange={(e) => setCor(e.target.value as VehiclePayload['color'])} className={css({ p: "3", border: "1px solid", borderColor: "gray.300", borderRadius: "md", bg: "white", fontSize: "sm" })}>
                 <option value="preto">Preto</option>
                 <option value="branco">Branco</option>
                 <option value="vermelho">Vermelho</option>
@@ -222,26 +219,11 @@ const VehicleForm = ({ onClose, vehicleToEdit, refreshList }: VehicleFormProps) 
             </div>
           </div>
 
-          <FormField 
-            id="assentos" 
-            label="Quantidade de assentos" 
-            placeholder="Ex: 5" 
-            type="number" 
-            value={assentos}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAssentos(e.target.value)}
-          />
+          <FormField id="assentos" label="Quantidade de assentos" placeholder="Ex: 5" type="number" value={assentos} onChange={(e: any) => setAssentos(e.target.value)} />
 
           <div className={flex({ gap: "3", mt: "4", justify: isEditing ? "space-between" : "flex-end" })}>
             {isEditing && (
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={loading}
-                className={css({
-                  px: "4", py: "3", bg: "red.100", color: "red.700", fontWeight: "bold",
-                  borderRadius: "md", cursor: "pointer", border: "none", _hover: { bg: "red.200" }
-                })}
-              >
+              <button type="button" onClick={handleDelete} disabled={loading} className={css({ px: "4", py: "3", bg: "red.100", color: "red.700", fontWeight: "bold", borderRadius: "md", cursor: "pointer", border: "none", _hover: { bg: "red.200" } })}>
                 Deletar
               </button>
             )}
@@ -256,19 +238,10 @@ const VehicleForm = ({ onClose, vehicleToEdit, refreshList }: VehicleFormProps) 
 
       {step === 2 && (
         <>
-          <Text weight="bold" className={css({ fontSize: "md", color: "gray.800" })}>
-            Passo 2 de 2: Foto do Veículo
-          </Text>
-          <Text className={css({ fontSize: "xs", color: "gray.500", mt: "-2" })}>
-            Adicionar uma foto real do veículo aumenta a confiança dos passageiros na hora de reservar.
-          </Text>
+          <Text weight="bold" className={css({ fontSize: "md", color: "gray.800" })}>Passo 2 de 2: Foto do Veículo</Text>
+          <Text className={css({ fontSize: "xs", color: "gray.500", mt: "-2" })}>Adicionar uma foto real do veículo aumenta a confiança dos passageiros.</Text>
 
-          <div className={flex({ 
-            direction: "column", alignItems: "center", justify: "center",
-            border: "2px dashed", borderColor: photoPreview ? "#547812" : "gray.300",
-            borderRadius: "xl", p: "4", bg: photoPreview ? "#f0f7e5" : "gray.50",
-            minHeight: "180px", position: "relative", overflow: "hidden"
-          })}>
+          <div className={flex({ direction: "column", alignItems: "center", justify: "center", border: "2px dashed", borderColor: photoPreview ? "#547812" : "gray.300", borderRadius: "xl", p: "4", bg: photoPreview ? "#f0f7e5" : "gray.50", minHeight: "180px", position: "relative", overflow: "hidden" })}>
             {photoPreview ? (
               <div className={flex({ direction: "column", alignItems: "center", gap: "2", width: "full" })}>
                 <img src={photoPreview} alt="Preview do veículo" className={css({ maxH: "160px", w: "full", objectFit: "cover", borderRadius: "lg" })}/>
@@ -279,29 +252,16 @@ const VehicleForm = ({ onClose, vehicleToEdit, refreshList }: VehicleFormProps) 
                 <Text className={css({ fontSize: "sm", color: "gray.600" })}>Toque aqui para escolher uma foto</Text>
               </div>
             )}
-
             <input type="file" accept="image/*" onChange={handlePhotoChange} className={css({ position: "absolute", top: 0, left: 0, w: "full", h: "full", opacity: 0, cursor: "pointer" })}/>
           </div>
 
           <div className={flex({ gap: "3", mt: "4" })}>
-            <button
-              type="button"
-              onClick={() => setStep(1)}
-              disabled={loading}
-              className={css({
-                flex: 1, py: "3", border: "1px solid", borderColor: "gray.300",
-                borderRadius: "md", bg: "white", color: "gray.700", fontWeight: "bold",
-                cursor: "pointer", _hover: { bg: "gray.50" }
-              })}
-            >
+            <button type="button" onClick={() => setStep(1)} disabled={loading} className={css({ flex: 1, py: "3", border: "1px solid", borderColor: "gray.300", borderRadius: "md", bg: "white", color: "gray.700", fontWeight: "bold", cursor: "pointer", _hover: { bg: "gray.50" } })}>
               Voltar
             </button>
-
             <div className={css({ flex: 2 })}>
               <Button width="full" onClick={handleSubmit} disabled={loading}>
-                <Text color="white" weight="bold">
-                  {loading ? "Processando..." : isEditing ? "Salvar Edição" : "Concluir Cadastro"}
-                </Text>
+                <Text color="white" weight="bold">{loading ? "Processando..." : isEditing ? "Salvar Edição" : "Concluir Cadastro"}</Text>
               </Button>
             </div>
           </div>
@@ -312,7 +272,7 @@ const VehicleForm = ({ onClose, vehicleToEdit, refreshList }: VehicleFormProps) 
 };
 
 /* ========================================================
-   COMPONENTE: INFORMAÇÕES PESSOAIS (FEEDBACK EM TELA)
+   COMPONENTE: INFORMAÇÕES PESSOAIS
 ======================================================== */
 const PersonalInfoForm = ({ onClose }: { onClose: () => void }) => {
   const [loadingInitial, setLoadingInitial] = useState(true);
@@ -341,14 +301,10 @@ const PersonalInfoForm = ({ onClose }: { onClose: () => void }) => {
         setTelefone(data?.telefone || "");
         setCpf(data?.cpf || "");
 
+        // 🌟 Normalização da foto do perfil do usuário logado
         const fotoSalva = data?.foto || data?.perfil?.foto;
-        if (fotoSalva && typeof fotoSalva === 'string') {
-          if (fotoSalva.startsWith('/')) {
-            setPhotoPreview(`${GATEWAY_URL}${fotoSalva}`);
-          } else {
-            setPhotoPreview(fotoSalva);
-          }
-        }
+        setPhotoPreview(getImageUrl(fotoSalva)); 
+
       } catch (error) {
         console.error("Erro ao carregar dados do perfil:", error);
       } finally {
@@ -384,7 +340,7 @@ const PersonalInfoForm = ({ onClose }: { onClose: () => void }) => {
       await api.patch('/api/profile/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      setProfileSuccess("Suas informações foram atualizadas com sucesso!");
+      setProfileSuccess("Suas informações foram updated com sucesso!");
       setTimeout(onClose, 1500);
     } catch (error: any) {
       console.error("Erro ao salvar perfil:", error.response?.data || error.message);
@@ -404,7 +360,6 @@ const PersonalInfoForm = ({ onClose }: { onClose: () => void }) => {
 
   return (
     <div className={flex({ direction: "column", gap: "4", py: "2" })}>
-      
       {profileError && (
         <Box p="3" bg="red.50" border="1px solid" borderColor="red.200" borderRadius="lg">
           <Text size="xs" color="danger" weight="medium">{profileError}</Text>
@@ -417,12 +372,7 @@ const PersonalInfoForm = ({ onClose }: { onClose: () => void }) => {
       )}
 
       <div className={flex({ direction: "column", alignItems: "center", mb: "2" })}>
-        <div className={css({
-          width: "96px", height: "96px", borderRadius: "full",
-          backgroundColor: photoPreview ? "transparent" : "#f0f7e5",
-          border: "2px dashed", borderColor: "#547812", display: "flex",
-          alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden", cursor: "pointer"
-        })}>
+        <div className={css({ width: "96px", height: "96px", borderRadius: "full", backgroundColor: photoPreview ? "transparent" : "#f0f7e5", border: "2px dashed", borderColor: "#547812", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden", cursor: "pointer" })}>
           {photoPreview ? (
             <img src={photoPreview} alt="Sua Foto" className={css({ width: "full", height: "full", objectFit: "cover" })} />
           ) : (
@@ -456,8 +406,6 @@ type ModalType = 'none' | 'vehicle' | 'payment' | 'personal_info' | 'all_vehicle
    COMPONENTE PRINCIPAL (PERFIL)
 ========================================= */
 export default function Perfil() {
-  const router = useRouter();
-
   const [activeModal, setActiveModal] = useState<ModalType>('none');
   const [selectedVehicle, setSelectedVehicle] = useState<any | null>(null);
 
@@ -510,7 +458,8 @@ export default function Perfil() {
         direction="row"
         Image={
           item.photo ? (
-            <img src={item.photo} alt={item.model} className={css({ w: "48px", h: "48px", objectFit: "cover", borderRadius: "xl" })} />
+            // 🌟 Renderiza o link montado de forma segura e sem caminhos duplicados
+            <img src={getImageUrl(item.photo) || ''} alt={item.model} className={css({ w: "48px", h: "48px", objectFit: "cover", borderRadius: "xl" })} />
           ) : (
             <div className={flex({ w: "48px", h: "48px", bg: "#e8f0e4", borderRadius: "xl", alignItems: "center", justifyContent: "center" })}>
               <Commute className={css({ color: "green.700", fontSize: "24px" })} />
@@ -634,7 +583,7 @@ export default function Perfil() {
             </div>
           </div>
           <div className={flex({ direction: "column", gap: "6", pt: "2" })}>
-            <div onClick={() => Logout(router)} className={css({ cursor: "pointer" })}>
+            <div onClick={() => Logout(api)} className={css({ cursor: "pointer" })}>
               <LinkImage
                 href="#"
                 Icon={<Person className={css({ color: "red", fontSize: "24px" })} />}
@@ -646,7 +595,6 @@ export default function Perfil() {
         </FrameComponent>
       </div>
 
-      {/* MODAL GLOBAL E DINÂMICO */}
       <Modal isOpen={activeModal !== 'none'} onClose={closeModal} title={getModalTitle()}>
         {renderModalContent()}
       </Modal>
