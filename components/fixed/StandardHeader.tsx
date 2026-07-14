@@ -11,7 +11,7 @@ import { NotificationService } from '@/services/notificationService';
 import { Notifications } from '@material-symbols-svg/react'; // 🌟 Ícone importado
 import { useRouter } from 'next/navigation';
 
-const GATEWAY_URL = 'http://localhost:8000';
+const GATEWAY_URL = 'http://34.10.220.97:8000';
 
 export default function StandardHeader() {
   const [userName, setUserName] = useState('Motorista');

@@ -12,7 +12,7 @@ import Login from '@/services/user/Login';
 import { useRouter } from 'next/navigation';
 import { SocialLogin } from '@capgo/capacitor-social-login';
 
-const GATEWAY_URL = 'http://localhost:8000';
+const GATEWAY_URL = 'http://34.10.220.97:8000';
 
 export default function Runs() {
   interface CredentialsData {

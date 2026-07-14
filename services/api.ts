@@ -1,6 +1,6 @@
 // services/api.ts
 
-const BASE_URL = process.env.NEXT_PUBLIC_CHAT_API_URL || 'http://localhost:8000/api/chat';
+const BASE_URL = process.env.NEXT_PUBLIC_CHAT_API_URL || 'http://34.10.220.97:8000/api/chat';
 export const api = {
   async get<T>(endpoint: string): Promise<{ data: T }> {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;

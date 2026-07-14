@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 
-const GATEWAY_URL = 'http://localhost:8000';
+const GATEWAY_URL = 'http://34.10.220.97:8000';
 
 interface CredentialData {
   email: string;

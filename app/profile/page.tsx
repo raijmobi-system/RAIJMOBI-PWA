@@ -29,7 +29,7 @@ import {
   CheckCircle
 } from "@material-symbols-svg/react";
 
-const GATEWAY_URL = 'http://localhost:8000'; // Centraliza a porta do Kong Gateway para entrega de mídias públicas
+const GATEWAY_URL = 'http://34.10.220.97:8000'; // Centraliza a porta do Kong Gateway para entrega de mídias públicas
 
 /* ========================================================
    🌟 FUNÇÃO INTELIGENTE DE RESOLUÇÃO DE URL DE IMAGENS
@@ -37,22 +37,49 @@ const GATEWAY_URL = 'http://localhost:8000'; // Centraliza a porta do Kong Gatew
 /* ========================================================
    🌟 FUNÇÃO INTELIGENTE DE RESOLUÇÃO DE URL DE IMAGENS (CORRIGIDA)
 ======================================================== */
-const getImageUrl = (rawPhoto: string | null) => {
-  if (!rawPhoto) return null;
-  
-  // 1. Se o Django mandou a URL interna do Docker (ex: http://ride-service:8000/media/...)
-  if (rawPhoto.includes('ride-service:8000')) {
-    return rawPhoto.replace('http://ride-service:8000', GATEWAY_URL);
-  }
-  
-  // 2. Se já for uma URL externa válida (ex: login social do Google ou produção)
-  if (rawPhoto.startsWith('http')) return rawPhoto;
-  
-  // 3. Se for o caminho relativo padrão (ex: /media/vehicles/foto.jpg)
-  const relativePath = rawPhoto.startsWith('/') ? rawPhoto : `/${rawPhoto}`;
-  return `${GATEWAY_URL}${relativePath}`;
-};
+/* ==========================================================================
+   🌟 FUNÇÃO BLINDADA DE RESOLUÇÃO DE URL DE IMAGENS (SEM DUPLICIDADE)
+   Resolve o host do Docker e impede dupla concatenação usando retornos imediatos
+========================================================================== */
+const getImageUrl = (rawPhoto: string | null | undefined, defaultFolder: string = 'vehicles'): string | null => {
+  if (!rawPhoto || typeof rawPhoto !== 'string') return null;
 
+  const cleanPhoto = rawPhoto.trim();
+  if (!cleanPhoto) return null;
+
+  // 1. Se o Django enviou a URL interna do Docker (ride-service:8000)
+  if (cleanPhoto.includes('ride-service:8000')) {
+    // Retorna imediatamente para evitar que caia nas verificações de baixo!
+    return cleanPhoto.replace('http://ride-service:8000', GATEWAY_URL);
+  }
+
+  // 2. Se já for o seu IP público ou uma URL externa válida (ex: produção)
+  if (cleanPhoto.startsWith('http://') || cleanPhoto.startsWith('https://')) {
+    return cleanPhoto;
+  }
+
+  // 3. Se contém /media/ mas veio relativo (ex: "/media/vehicles/foto.jpg")
+  const mediaIndex = cleanPhoto.indexOf('/media/');
+  if (mediaIndex !== -1) {
+    const mediaPath = cleanPhoto.substring(mediaIndex);
+    return `${GATEWAY_URL}${mediaPath}`;
+  }
+
+  const mediaIndexNoSlash = cleanPhoto.indexOf('media/');
+  if (mediaIndexNoSlash !== -1) {
+    const mediaPath = cleanPhoto.substring(mediaIndexNoSlash - 1);
+    const safePath = mediaPath.startsWith('/') ? mediaPath : `/${mediaPath}`;
+    return `${GATEWAY_URL}${safePath}`;
+  }
+
+  // 4. Fallback final para caminhos puros salvos no banco (ex: "fordka.jpg")
+  const pathWithoutSlash = cleanPhoto.startsWith('/') ? cleanPhoto.slice(1) : cleanPhoto;
+  if (pathWithoutSlash.includes('/')) {
+    return `${GATEWAY_URL}/media/${pathWithoutSlash}`;
+  }
+
+  return `${GATEWAY_URL}/media/${defaultFolder}/${pathWithoutSlash}`;
+};
 async function Logout(router: any) {
   await SecureStoragePlugin.remove({ key: 'access_token' });
   await SecureStoragePlugin.remove({ key: 'refresh_token' });

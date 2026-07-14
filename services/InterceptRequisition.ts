@@ -1,7 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 
-const GATEWAY_URL = 'http://localhost:8000';
+const GATEWAY_URL = 'http://34.10.220.97:8000';
 
 // FUNÇÃO AUXILIAR BLINDADA: Lê do storage sem explodir se a chave não existir
 async function getSafeToken(key: string): Promise<string | null> {

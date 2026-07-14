@@ -56,6 +56,62 @@ const FeedbackBanner = ({ type, message }: { type: 'success' | 'error' | null, m
 };
 
 /* =========================================
+   COMPONENTE AUXILIAR: MODAL DE CONFIRMAÇÃO CUSTOMIZADO
+   Substitui os window.confirm e alert nativos do navegador
+========================================= */
+interface ConfirmModalProps {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  onConfirm: () => void;
+  onClose: () => void;
+  loading?: boolean;
+}
+
+const ConfirmModal = ({ isOpen, title, message, onConfirm, onClose, loading }: ConfirmModalProps) => {
+  if (!isOpen) return null;
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={title}>
+      <Flex direction="column" gap="5" py="2">
+        <Text size="md" color="muted" weight="medium">
+          {message}
+        </Text>
+        
+        <Flex gap="3" mt="2">
+          <button 
+            type="button"
+            onClick={onClose} 
+            disabled={loading}
+            className={css({ 
+              flex: 1, 
+              py: "3", 
+              border: "1px solid", 
+              borderColor: "gray.300", 
+              borderRadius: "xl", 
+              bg: "white", 
+              color: "gray.700", 
+              fontWeight: "bold", 
+              cursor: "pointer",
+              _hover: { bg: "gray.50" } 
+            })}
+          >
+            Voltar
+          </button>
+          
+          <div className={css({ flex: 1 })}>
+            <Button width="full" onClick={onConfirm} disabled={loading}>
+              <Text color="white" weight="bold">
+                {loading ? "Processando..." : "Confirmar"}
+              </Text>
+            </Button>
+          </div>
+        </Flex>
+      </Flex>
+    </Modal>
+  );
+};
+
+/* =========================================
    COMPONENTE AUXILIAR: TRAJETO VISUAL
 ========================================= */
 const RouteDisplay = ({ title, origin, destination }: { title: string, origin: string, destination: string }) => (
@@ -76,7 +132,7 @@ const RouteDisplay = ({ title, origin, destination }: { title: string, origin: s
 );
 
 /* =========================================
-   COMPONENTE: DETALHES NO MODAL (Ações Reais)
+   COMPONENTE: DETALHES NO MODAL
 ========================================= */
 interface RideDetailsProps {
   item: any; 
@@ -94,9 +150,10 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
   const [pagando, setPagando] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false); 
 
-  // 🌟 ESTADOS LOCAIS PARA SUBSTITUIR OS ALERTS DENTRO DO MODAL
   const [feedbackType, setFeedbackType] = useState<'success' | 'error' | null>(null);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
+
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; title: string; message: string; action: () => Promise<void> } | null>(null);
 
   const ride = role === 'passageiro' ? item.ride : item;
   const reservationId = role === 'passageiro' ? item.id : null;
@@ -113,63 +170,72 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
     }, 1800);
   };
 
-  // LÓGICA DE INICIAR OU TERMINAR CARONA (Apenas Motorista)
-  const handleUpdateRideStatus = async (newStatus: 'em_andamento' | 'finalizada') => {
+  const triggerUpdateRideStatus = (newStatus: 'em_andamento' | 'finalizada') => {
     if (!ride?.id) return;
-
-    const confirmMessage = newStatus === 'em_andamento' 
-      ? "Quer mesmo começar essa carona?" 
+    const msg = newStatus === 'em_andamento' 
+      ? "Quer mesmo começar essa carona agora?" 
       : "Quer mesmo terminar essa carona?";
 
-    if (window.confirm(confirmMessage)) {
-      setUpdatingStatus(true);
-      setFeedbackType(null);
-      try {
-        await RideService.update(String(ride.id), { status: newStatus });
-        setFeedbackType('success');
-        setFeedbackMsg(`Carona ${newStatus === 'em_andamento' ? 'iniciada' : 'finalizada'} com sucesso!`);
-        clearFeedbackAfterDelay(() => {
-          onClose();
-          onSuccessCancel();
-        });
-      } catch (error) {
-        console.error("Erro ao atualizar status da carona:", error);
-        setFeedbackType('error');
-        setFeedbackMsg("Não foi possível atualizar o status da carona. Tente novamente.");
-      } finally {
-        setUpdatingStatus(false);
+    setConfirmDialog({
+      isOpen: true,
+      title: newStatus === 'em_andamento' ? "Iniciar Carona" : "Encerrar Carona",
+      message: msg,
+      action: async () => {
+        setUpdatingStatus(true);
+        setFeedbackType(null);
+        try {
+          await RideService.update(String(ride.id), { status: newStatus });
+          setFeedbackType('success');
+          setFeedbackMsg(`Carona ${newStatus === 'em_andamento' ? 'iniciada' : 'finalizada'} com sucesso!`);
+          setConfirmDialog(null);
+          clearFeedbackAfterDelay(() => {
+            onClose();
+            onSuccessCancel();
+          });
+        } catch (error) {
+          console.error("Erro ao atualizar status da carona:", error);
+          setFeedbackType('error');
+          setFeedbackMsg("Não foi possível atualizar o status da carona. Tente novamente.");
+          setConfirmDialog(null);
+        } finally {
+          setUpdatingStatus(false);
+        }
       }
-    }
+    });
   };
 
-  // CANCELAMENTO DE RESERVA (Passageiro)
-  const handleCancelParticipation = async () => {
+  const triggerCancelParticipation = () => {
     if (!reservationId) return;
     
-    const confirm = window.confirm("Deseja realmente cancelar sua participação nesta carona? Suas vagas serão liberadas no sistema.");
-    if (confirm) {
-      setCanceling(true);
-      setFeedbackType(null);
-      try {
-        await ReservationService.updateStatus(String(reservationId), 'cancelada');
-        setFeedbackType('success');
-        setFeedbackMsg("Participação cancelada com sucesso!");
-        clearFeedbackAfterDelay(() => {
-          onClose();
-          onSuccessCancel();
-        });
-      } catch (error: any) {
-        console.error("Erro na API ao cancelar reserva:", error);
-        const errorMsg = error.response?.data?.detail || JSON.stringify(error.response?.data) || "Erro ao conectar com o servidor.";
-        setFeedbackType('error');
-        setFeedbackMsg(`Falha no cancelamento: ${errorMsg}`);
-      } finally {
-        setCanceling(false);
+    setConfirmDialog({
+      isOpen: true,
+      title: "Cancelar Participação",
+      message: "Deseja realmente cancelar sua participação nesta carona? Suas vagas serão liberadas no sistema.",
+      action: async () => {
+        setCanceling(true);
+        setFeedbackType(null);
+        try {
+          await ReservationService.updateStatus(String(reservationId), 'cancelada');
+          setFeedbackType('success');
+          setFeedbackMsg("Participação cancelada com sucesso!");
+          setConfirmDialog(null);
+          clearFeedbackAfterDelay(() => {
+            onClose();
+            onSuccessCancel();
+          });
+        } catch (error: any) {
+          console.error("Erro na API ao cancelar reserva:", error);
+          const errorMsg = error.response?.data?.detail || JSON.stringify(error.response?.data) || "Erro ao conectar com o servidor.";
+          setFeedbackType('error');
+          setFeedbackMsg(`Falha no cancelamento: ${errorMsg}`);
+          setConfirmDialog(null);
+        } finally {
+          setCanceling(false);
+        }
       }
-    }
+    });
   };
 
-  // FLUXO DE PAGAMENTO STRIPE (Passageiro)
   const handleFazerPagamento = async () => {
     if (!reservationId) return;
 
@@ -199,7 +265,6 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
 
   return (
     <Flex direction="column" gap="4">
-      {/* 🌟 EXIBIÇÃO DE MENSAGENS EM TELA DENTRO DO MODAL */}
       <FeedbackBanner type={feedbackType} message={feedbackMsg} />
 
       <Flex direction='row' justifyContent='space-between'>
@@ -250,7 +315,7 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
               <>
                 <Button 
                   width='full' 
-                  onClick={() => handleUpdateRideStatus('em_andamento')} 
+                  onClick={() => triggerUpdateRideStatus('em_andamento')} 
                   disabled={updatingStatus}
                   className={css({ bg: '#547812' })} 
                 >
@@ -274,7 +339,7 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
             {ride.status?.toLowerCase() === 'em_andamento' && (
               <Button 
                 width='full' 
-                onClick={() => handleUpdateRideStatus('finalizada')} 
+                onClick={() => triggerUpdateRideStatus('finalizada')} 
                 disabled={updatingStatus}
                 className={css({ bg: 'red.500' })} 
               >
@@ -303,7 +368,7 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
                 }}
                 className={css({ bg: '#FFC107', _hover: { bg: '#FFA000' } })}
               >
-                <Text color="white" weight="bold">⭐ Avaliar Motorista</Text>
+                <Text color="white" weight="bold">Avaliar Motorista</Text>
               </Button>
             )}
 
@@ -322,7 +387,7 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
 
             <Button 
               width='full' 
-              onClick={handleCancelParticipation}
+              onClick={triggerCancelParticipation}
               disabled={isAlreadyCanceled || canceling || isLocked || pagando}
               className={css({ 
                 bg: isAlreadyCanceled || isLocked ? 'gray.100' : 'red.50', 
@@ -337,12 +402,23 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
           </>
         )}
       </Flex>
+
+      {confirmDialog && (
+        <ConfirmModal 
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.action}
+          onClose={() => setConfirmDialog(null)}
+          loading={updatingStatus || canceling}
+        />
+      )}
     </Flex>
   );
 };
 
 /* ====================================================
-   CONTEÚDO DA PÁGINA (Isolado para suportar Suspense)
+   CONTEÚDO DA PÁGINA
 ====================================================== */
 function RunsContent() {
   const router = useRouter();
@@ -356,7 +432,6 @@ function RunsContent() {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
-  // 🌟 ESTADOS PARA MENSAGENS DE FEEDBACK EXTERNAS (PAGAMENTO WEB RETORNO)
   const [screenFeedbackType, setScreenFeedbackType] = useState<'success' | 'error' | null>(null);
   const [screenFeedbackMsg, setScreenFeedbackMsg] = useState<string | null>(null);
 
@@ -405,7 +480,6 @@ function RunsContent() {
     fetchItems(1, activeTab);
   }, [fetchItems, activeTab]);
 
-  // ESCUTA RETORNO DO STRIPE WEB E CONFIRMA NO BACKEND
   useEffect(() => {
     const verificarPagamentoWeb = async () => {
       const paymentStatus = searchParams.get('payment');
@@ -427,7 +501,6 @@ function RunsContent() {
         router.replace('/runs');
       }
       
-      // Limpa a mensagem da tela após 4 segundos
       if (paymentStatus) {
         setTimeout(() => {
           setScreenFeedbackType(null);
@@ -499,7 +572,6 @@ function RunsContent() {
       >
         <Flex direction="column" paddingY="4" gap="4">
           
-          {/* 🌟 BANNER DE FEEDBACK PARA RETORNO DE SESSÕES WEB DO STRIPE */}
           <FeedbackBanner type={screenFeedbackType} message={screenFeedbackMsg} />
 
           {activeTab === 'motorista' && (
@@ -530,6 +602,10 @@ function RunsContent() {
             const originStr = typeof rideData.origin === 'object' ? `${rideData.origin.city}, ${rideData.origin.state}` : rideData.origin;
             const destStr = typeof rideData.destination === 'object' ? `${rideData.destination.city}, ${rideData.destination.state}` : rideData.destination;
 
+            const isRideFinished = rideData.status?.toLowerCase() === 'finalizada';
+            const isReservationConfirmed = item.status?.toLowerCase() === 'confirmada';
+            const showRatingButton = activeTab === 'passageiro' && isRideFinished && isReservationConfirmed;
+
             return (
               <div 
                 key={item.id} 
@@ -550,6 +626,47 @@ function RunsContent() {
                       {activeTab === 'passageiro' && (
                         <Text size="xs" color="muted">{item.requested_seats} vaga(s)</Text>
                       )}
+
+                      {/* 🌟 BOTÃO AVALIAR ÚNICO (SEM DUPLICAÇÃO) E COM BUSCA ROBUSTA DE ID */}
+                      {showRatingButton && (
+                        <Button 
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation(); 
+
+                            const driverId = rideData.driver?.id || 
+                                             rideData.driver || 
+                                             rideData.vehicle?.user?.id || 
+                                             rideData.vehicle?.user || 
+                                             rideData.vehicle_detail?.user?.id ||
+                                             '';
+
+                            const driverName = rideData.driver?.name || 
+                                               rideData.vehicle?.user?.name || 
+                                               rideData.vehicle_detail?.user?.name || 
+                                               'Motorista Parceiro';
+
+                            setRatingData({
+                              reservationId: item.id,
+                              driverId: String(driverId),
+                              driverName: driverName
+                            });
+                            setShowRatingModal(true);
+                          }}
+                          className={css({ 
+                            bg: '#FFC107', 
+                            mt: '1',
+                            px: '3',
+                            py: '1',
+                            height: 'auto',
+                            minHeight: '28px',
+                            borderRadius: 'md',
+                            _hover: { bg: '#FFA000' } 
+                          })}
+                        >
+                          <Text color="white" weight="bold" size="xs">Avaliar</Text>
+                        </Button>
+                      )}
                     </Flex>
                   }
                 />
@@ -566,7 +683,6 @@ function RunsContent() {
         </Flex>
       </FrameComponent>
 
-      {/* MODAL TRADICIONAL DE DETALHES DA VIAGEM */}
       <Modal 
         isOpen={!!selectedItem} 
         onClose={closeModal} 
@@ -591,7 +707,6 @@ function RunsContent() {
         )}
       </Modal>
 
-      {/* MODAL DE NOTAS INTERATIVO COMPLEMENTAR */}
       <RatingModal
         isOpen={showRatingModal}
         onClose={() => setShowRatingModal(false)}
@@ -613,9 +728,6 @@ function RunsContent() {
   );
 }
 
-/* ====================================================
-   EXPORT PRINCIPAL 
-====================================================== */
 export default function Runs() {
   return (
     <Suspense fallback={
