@@ -1,3 +1,4 @@
+"use client"
 import React from 'react';
 import { Flex, Box } from '../../styled-system/jsx';
 import { css } from '../../styled-system/css';
@@ -31,7 +32,6 @@ export default function ChatMessage({ isMe, text, time, author, avatarSrc }: Cha
         <Box 
           className={css({
             bg: isMe ? 'green.700' : 'white',
-            color: isMe ? 'white' : 'gray.800',
             p: '3',
             borderRadius: '16px',
             borderTopLeftRadius: isMe ? '16px' : '4px',
@@ -39,7 +39,7 @@ export default function ChatMessage({ isMe, text, time, author, avatarSrc }: Cha
             boxShadow: 'sm',
           })}
         >
-          <Text>{text}</Text>
+          <Text color={isMe ? 'white' : 'cupom'} >{text}</Text>
         </Box>
         
         <Text size="xs" color='muted'>

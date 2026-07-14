@@ -1,14 +1,15 @@
+// components/DynamicHeader.tsx
 "use client";
 
 import { usePathname } from 'next/navigation';
 import StandardHeader from '@/components/fixed/StandardHeader';
-import MessageHeader from '@/components/fixed/MessageHeader'; // Certifique-se de importar ele
 
 export default function DynamicHeader() {
-  const pathname = usePathname();
+  const pathname = usePathname() || '';
 
-  if (pathname === '/chat/conversation') {
-    return <MessageHeader />;
+  // 🌟 CORREÇÃO: Se a rota começar com a conversa do chat, oculta o Header padrão do sistema
+  if (pathname.startsWith('/chat/conversation')) {
+    return null;
   }
 
   return <StandardHeader />;

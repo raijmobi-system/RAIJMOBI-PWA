@@ -1,28 +1,21 @@
 "use client";
 
-import type { Metadata } from "next";
-import { Hanken_Grotesk } from "next/font/google";
-import "./globals.css"; 
+import { Manrope } from "next/font/google";
+import "./globals.css";  
 import { css } from "@/styled-system/css"; 
-import { Flex } from '@/styled-system/jsx';
-import {Heading,Text} from '@/components/atoms/typography';
-import {Avatar} from '@/components/atoms/presentation';
-import {Link} from '@/components/atoms/action';
-import { Opacity } from "@material-symbols-svg/react";
-import { LinkImage } from "@/components/molecules";
-import {  Search, DirectionsCar, Chat,Person} from '@material-symbols-svg/react';
-import { Icon } from "@/components/atoms/presentation";
-import Navigation from "@/components/fixed/Navigation";
+import 'leaflet/dist/leaflet.css';
 import { usePathname } from 'next/navigation';
-import StandardHeader from '@/components/fixed/StandardHeader'
-const hankenGrotesk = Hanken_Grotesk({
+
+import Navigation from "@/components/fixed/Navigation";
+import DynamicHeader from "@/components/fixed/DynamicHeader"; 
+import { useEffect } from "react";
+import { initSocialLogin } from "@/services/user/SocialLoginProvider";
+
+const manrope = Manrope({
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-hanken-grotesk', 
+  variable: '--font-manrope',
 });
-import DynamicHeader from "@/components/fixed/DynamicHeader"; // Importa o gerenciador que criamos acima
-
-
 
 export default function RootLayout({
   children,
@@ -30,69 +23,89 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
+  useEffect(() => {
+    initSocialLogin().catch(console.error);
+  }, []);
+  // 1. VERIFICAÇÕES DE ROTA
+  const isChatPage = pathname?.includes('/chat/conversation');
+  const isUserPage = pathname?.startsWith('/user'); 
+
   return (
     <html
       lang="pt-BR"
-      // Passamos a variável da fonte aqui para o HTML/CSS nativo conhecer o caminho dela
-      className={`${hankenGrotesk.variable} ${css({ width: '100%' })}`} 
+      className={`${manrope.variable} ${css({ width: '100%' })}`} 
     >
       <body className={css({
         display: 'grid',
         backgroundColor: 'gray.50',
+        minHeight: '100vh', 
 
-        gridTemplateRows: 'auto 1fr auto',
+        paddingTop: 'env(safe-area-inset-top, 0px)', 
+
+        // 2. GRID MOBILE DINÂMICO
+        gridTemplateRows: isUserPage ? '1fr' : 'auto 1fr auto',
         gridTemplateColumns: '1fr',
-        gridTemplateAreas: `
-          "header"
-          "main"
-          "bottom"
-        `,
+        gridTemplateAreas: isUserPage 
+          ? `"main"` 
+          : `
+            "header"
+            "main"
+            "bottom"
+          `,
 
         md: {
-          gridTemplateRows: 'auto 1fr',
-          // O Aside ocupa 240px na esquerda, o resto (1fr) vai para o Header/Main
-          gridTemplateColumns: '80px 1fr',
-          // O Aside ocupa toda a lateral esquerda (duas linhas de altura)
-          gridTemplateAreas: `
-            "aside header"
-            "aside main"
-          `,
+          // 3. GRID DESKTOP DINÂMICO (Evita o buraco de 80px à esquerda)
+          gridTemplateRows: isUserPage ? '1fr' : 'auto 1fr',
+          gridTemplateColumns: isUserPage ? '1fr' : '80px 1fr',
+          gridTemplateAreas: isUserPage 
+            ? `"main"`
+            : `
+              "aside header"
+              "aside main"
+            `,
+          paddingTop: '0px', 
         },
       })}>
 
-        <DynamicHeader/>
+        {/* HEADER OCULTO EM /user */}
+        {!isUserPage && <DynamicHeader/>}
 
-        
+        {/* ASIDE OCULTO EM /user */}
+        {!isUserPage && (
+          <aside
+            className={css({
+              gridArea: 'aside',
+              background: '#363636',
+              padding: '6',
+              display: 'none',
+              md: { display: 'flex', flexDirection: 'column' },
+            })}
+          >
+            <Navigation direction="column" />
+          </aside>
+        )}
 
-        {/* Adicionei estilos básicos no aside para não quebrar a estrutura flex */}
-        <aside
-        className={css({
-          gridArea: 'aside',
-          background: 'gray.100',
-          padding: '6',
-          // Mobile: Esconde visualmente o conteúdo (o grid ignora a área)
-          display: 'none',
-          // Desktop: Faz a sidebar reaparecer
-          md: { display: 'flex', flexDirection: 'column' },
-        })}
-      >
-          <Navigation direction="column"/>
-        </aside>
+        <main className={css({ flex: '1', minWidth: '0', width: '100%', overflowX: 'hidden', h: '100%', background: '#fbf9f9'})}>
+          {children} 
+        </main>
 
-        <main className={css({ flex: '1',minWidth: '0',width: '100%', overflowX: 'hidden'})}>{children}</main>
-
-        <footer className={css({
-           gridArea: 'bottom',
-          background: 'gray.200',
-          padding: '4',
-          display: 'flex',
-          flexDirection: 'row',
-          justifyContent: 'space-around',
-          // Desktop: Some completamente do layout
-          md: { display: 'none' },
-           })}>
-          <Navigation direction="row"/>
-        </footer>
+        {/* FOOTER OCULTO NO CHAT E EM /user */}
+        {!isChatPage && !isUserPage && (
+          <footer className={css({
+            gridArea: 'bottom',
+            background: '#262626',
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'space-around',
+            paddingTop: '4',
+            paddingLeft: '4',
+            paddingRight: '4',
+            paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))', 
+            md: { display: 'none' },
+          })}>
+            <Navigation direction="row"/>
+          </footer>
+        )}
 
       </body>
     </html>

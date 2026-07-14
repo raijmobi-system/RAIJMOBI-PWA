@@ -3,7 +3,7 @@ import { cva } from '../../../styled-system/css';
 
 const buttonRecipe = cva({
   base: {
-    display: 'inline-flex',
+    display: 'flex',
     width: 'auto',
     alignItems: 'center',
     justifyContent: 'center',
@@ -22,9 +22,9 @@ const buttonRecipe = cva({
   variants: {
     variant: {
       solid: { 
-        backgroundColor: 'green.600', 
+        backgroundColor: '#547812', 
         color: 'white', 
-        _hover: { backgroundColor: 'green.700' } 
+        _hover: {  } 
       },
       outline: { 
         backgroundColor: 'transparent',
@@ -35,8 +35,14 @@ const buttonRecipe = cva({
       },
       ghost: { 
         backgroundColor: 'transparent',
-        color: 'blue.600', 
-        _hover: { backgroundColor: 'blue.50' } 
+        color: 'gray.300', 
+        _hover: { color: 'white' } 
+      },
+      special: { 
+        backgroundColor: 'white',
+        color: 'gray.300',
+        borderColor: 'gray.800', 
+        
       },
     },
     size: {

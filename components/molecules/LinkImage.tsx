@@ -1,19 +1,17 @@
+"use client";
+
 import React from "react";
 import { cva } from '../../styled-system/css';
 import { flex } from '../../styled-system/patterns';
-import { Colorize } from "@material-symbols-svg/react";
+import Link from "next/link";
 
-// 1. Definição do CVA (As regras visuais ficam isoladas aqui fora)
 const linkMoleculeRecipe = cva({
   base: {
     display: 'flex',
     alignItems: 'center',
     height: '40px',
     borderRadius: '8px',
-    
     backgroundColor: 'transparent', 
-    
-    
     textDecoration: 'none',
     transition: 'all 0.2s ease',
     gap: '2',
@@ -29,7 +27,7 @@ const linkMoleculeRecipe = cva({
         flexDirection: 'column',
         justifyContent: 'center',
         paddingInline: '2',
-        height: 'auto', // Se for coluna com texto, 40px pode ser pouco, deixamos auto ou uma minHeight
+        height: 'auto', 
         minHeight: '40px',
       }
     },
@@ -42,19 +40,14 @@ const linkMoleculeRecipe = cva({
         paddingInline: '0', 
         justifyContent: 'center' 
       }
-    },
-    color: {
-      muted: { color: 'rgba(255, 255, 255, 0.6)' },
-      active: { color: 'gray' },
     }
   },
-  // 3. Comcompound Variants (Regras especiais baseadas na combinação de propriedades)
   compoundVariants: [
     {
       direction: 'column',
       width: 'fixed-square',
       css: {
-        height: '40px', // Garante o quadrado perfeito se o usuário moscou nas propriedades
+        height: '40px', 
       }
     }
   ],
@@ -71,6 +64,7 @@ interface LinkMoleculeProps {
   extraElement?: React.ReactNode;
   direction?: 'row' | 'column';
   width?: 'auto' | 'full' | 'fixed-square';
+  isActive?: boolean; 
 }
 
 export default function LinkMolecule({
@@ -79,30 +73,65 @@ export default function LinkMolecule({
   text,
   extraElement,
   direction,
-  width
+  width,
+  isActive = false 
 }: LinkMoleculeProps) {
   
-  // Executa o CVA passando as props recebidas
   const className = linkMoleculeRecipe({ direction, width });
 
+  // Definimos as cores exatas
+  const kiwidiGreen = '#547812';
+  const inactiveGray = '#8c8c8c';
+  
+  const activeColor = isActive ? kiwidiGreen : inactiveGray;
+
   return (
-    <a href={href} className={className}>
-      {/* Container do Bloco Principal (Ícone + Texto) */}
+    <Link 
+      href={href} 
+      className={className}
+      // 1. Forçamos a cor na raiz do Link usando style nativo
+      style={{ color: activeColor }}
+    >
       <div className={flex({ 
         direction: direction, 
         alignItems: 'center', 
         gap: '2',
         justifyContent: 'center',
-        width: direction === 'column' ? '100%' : 'auto'
+        width: direction === 'column' ? '100%' : 'auto',
       })}>
-        <span className={flex({ shrink: 0, alignItems: 'center', justifyContent: 'center' })}>{Icon}</span>
-        {text && <span className="text-sm font-medium text-gray-700 truncate">{text}</span>}
+        
+        {/* 2. O ícone herda a cor automaticamente via currentColor */}
+        <span 
+          className={flex({ 
+            shrink: 0, 
+            alignItems: 'center', 
+            justifyContent: 'center'
+          })}
+          style={{ color: activeColor }}
+        >
+          {Icon}
+        </span>
+        
+        {text && (
+          <span 
+            className={flex({
+              fontSize: 'xs', 
+              fontWeight: isActive ? 'bold' : 'medium', 
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            })}
+            // 3. Forçamos a cor no texto também para garantir
+            style={{ color: activeColor }}
+          >
+            {text}
+          </span>
+        )}
       </div>
 
-      {/* Elemento Extra (Só faz sentido visual se não for um quadrado fixo de 40x40) */}
       {extraElement && width !== 'fixed-square' && (
         <span className={flex({ shrink: 0 })}>{extraElement}</span>
       )}
-    </a>
+    </Link>
   );
 }
