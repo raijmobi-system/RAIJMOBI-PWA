@@ -19,6 +19,7 @@ import { ReservationService } from '@/services/ride/reservationService';
 import { VehicleService } from '@/services/ride/vehicleService'; // 🌟 Importado para buscar dados do veículo
 import { api } from '@/services/InterceptRequisition'; // 🌟 Usado para buscar os dados reais do motorista
 import { toast } from '@/lib/toast';
+import { getImageUrl } from '@/lib/getImageUrl';
 
 // Ícones
 import { 
@@ -30,46 +31,6 @@ import {
   ArrowBack,
   ManageSearch
 } from '@material-symbols-svg/react';
-
-const GATEWAY_URL = 'http://localhost:8000'; // Altere para o seu IP/Domínio público de produção quando necessário
-
-/* ==========================================================================
-   🌟 FUNÇÃO BLINDADA DE RESOLUÇÃO DE URL DE IMAGENS
-   Intercepta qualquer formato de URL do Django/Docker e aponta para o Gateway
-   ========================================================================== */
-const getImageUrl = (rawPhoto: string | null | undefined, defaultFolder: string = 'vehicles'): string | null => {
-  if (!rawPhoto || typeof rawPhoto !== 'string') return null;
-
-  const cleanPhoto = rawPhoto.trim();
-  if (!cleanPhoto) return null;
-
-  // 1. Se contém /media/ ou media/ em qualquer parte (ex: http://ride-service:8000/media/vehicles/foto.jpg)
-  // Cortamos tudo que vem antes e forçamos o uso do GATEWAY_URL público!
-  const mediaIndex = cleanPhoto.indexOf('/media/');
-  if (mediaIndex !== -1) {
-    const mediaPath = cleanPhoto.substring(mediaIndex);
-    return `${GATEWAY_URL}${mediaPath}`;
-  }
-
-  const mediaIndexNoSlash = cleanPhoto.indexOf('media/');
-  if (mediaIndexNoSlash !== -1) {
-    const mediaPath = cleanPhoto.substring(mediaIndexNoSlash - 1);
-    return `${GATEWAY_URL}${mediaPath.startsWith('/') ? mediaPath : `/${mediaPath}`}`;
-  }
-
-  // 2. Se for uma URL externa legítima (Google, Facebook, AWS S3, etc) sem /media/
-  if (cleanPhoto.startsWith('http://') || cleanPhoto.startsWith('https://')) {
-    return cleanPhoto;
-  }
-
-  // 3. Se veio apenas o caminho relativo do banco de dados (ex: "vehicles/fordka.jpg")
-  const pathWithoutSlash = cleanPhoto.startsWith('/') ? cleanPhoto.slice(1) : cleanPhoto;
-  if (pathWithoutSlash.includes('/')) {
-    return `${GATEWAY_URL}/media/${pathWithoutSlash}`;
-  }
-
-  return `${GATEWAY_URL}/media/${defaultFolder}/${pathWithoutSlash}`;
-};
 
 /* ==========================================================================
    1. COMPONENTE: DETALHES COMPLETO DA CARONA (MODAL COM SELETOR DE VAGAS)

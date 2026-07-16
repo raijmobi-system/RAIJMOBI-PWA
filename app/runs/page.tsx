@@ -22,6 +22,7 @@ import { api } from '@/services/InterceptRequisition';
 import { RideService } from '@/services/ride/rideService';
 import { ReservationService } from '@/services/ride/reservationService';
 import { StripePaymentServiceFront } from '@/services/stripe/stripeService';
+import { getImageUrl } from '@/lib/getImageUrl';
 
 // Ícones do Material Symbols
 import {
@@ -169,12 +170,38 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
 
   const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; title: string; message: string; action: () => Promise<void> } | null>(null);
 
+  const [driver, setDriver] = useState<any | null>(null);
+
   const ride = role === 'passageiro' ? item.ride : item;
   const reservationId = role === 'passageiro' ? item.id : null;
   const reservationStatus = role === 'passageiro' && item?.status ? String(item.status).toLowerCase() : null;
 
   const isLocked = ['em_andamento', 'finalizada'].includes(ride?.status?.toLowerCase());
   const isAlreadyCanceled = reservationStatus === 'cancelada';
+
+  // 🌟 Busca os dados reais do motorista (nome, foto, avaliação real) a partir do veículo da carona
+  useEffect(() => {
+    const vehicleId = typeof ride?.vehicle === 'string' ? ride.vehicle : ride?.vehicle?.id;
+    if (!vehicleId) return;
+
+    let cancelled = false;
+
+    const fetchDriver = async () => {
+      try {
+        const vehicleResponse = await api.get(`/api/ride/vehicles/${vehicleId}/`);
+        const driverId = vehicleResponse.data?.user;
+        if (!driverId) return;
+
+        const driverResponse = await api.get(`/api/ride/users/${driverId}/`);
+        if (!cancelled) setDriver(driverResponse.data);
+      } catch (error) {
+        console.error("Erro ao buscar dados reais do motorista:", error);
+      }
+    };
+
+    fetchDriver();
+    return () => { cancelled = true; };
+  }, [ride?.vehicle]);
 
   const clearFeedbackAfterDelay = (callback?: () => void) => {
     setTimeout(() => {
@@ -295,14 +322,20 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
         direction='row'
         fullWidth={true}
         Image={
-          <img src='https://i.pravatar.cc/150?img=47' alt="Motorista" className={css({ w: '50px', h: '50px', borderRadius: 'full' })} />
+          <img src={getImageUrl(driver?.photo, 'avatars') || '/driver-placeholder.png'} alt="Motorista" className={css({ w: '50px', h: '50px', borderRadius: 'full', objectFit: 'cover' })} />
         }
         content={
           <Flex direction='column'>
-            <Text weight="bold" color='primary'>Motorista Parceiro</Text>
+            <Text weight="bold" color='primary'>{driver?.name || 'Motorista Parceiro'}</Text>
             <Flex direction='row' alignItems="center" gap="1">
-              <Star className={css({ color: '#f5a623', fontSize: '14px' })} />
-              <Text size="sm" color="muted">4.9</Text>
+              {driver?.average_rating && Number(driver.average_rating) > 0 ? (
+                <>
+                  <Star className={css({ color: '#f5a623', fontSize: '14px' })} />
+                  <Text size="sm" color="muted">{Number(driver.average_rating).toFixed(1)}</Text>
+                </>
+              ) : (
+                <Text size="sm" color="muted">Motorista novo por aqui</Text>
+              )}
             </Flex>
           </Flex>
         }

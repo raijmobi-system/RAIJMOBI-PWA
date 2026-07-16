@@ -10,8 +10,7 @@ import { api } from '@/services/InterceptRequisition';
 import { NotificationService } from '@/services/notificationService';
 import { Notifications } from '@material-symbols-svg/react'; // 🌟 Ícone importado
 import { useRouter } from 'next/navigation';
-
-const GATEWAY_URL = 'http://localhost:8000';
+import { getImageUrl } from '@/lib/getImageUrl';
 
 export default function StandardHeader() {
   const [userName, setUserName] = useState('Motorista');
@@ -35,12 +34,9 @@ export default function StandardHeader() {
         }
 
         const fotoRecebida = data?.foto || data?.perfil?.foto;
-        if (fotoRecebida && typeof fotoRecebida === 'string') {
-          if (fotoRecebida.startsWith('/')) {
-            setUserPhoto(`${GATEWAY_URL}${fotoRecebida}`);
-          } else {
-            setUserPhoto(fotoRecebida);
-          }
+        const resolvedPhoto = getImageUrl(fotoRecebida);
+        if (resolvedPhoto) {
+          setUserPhoto(resolvedPhoto);
         }
       } catch (error) {
         console.error("Erro ao carregar perfil:", error);

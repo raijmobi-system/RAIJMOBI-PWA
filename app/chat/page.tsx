@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 // Serviços
 import { chatService, ChatRoomData } from "@/services/chat_service";
 import { RideService } from "@/services/ride/rideService";
+import { getImageUrl } from "@/lib/getImageUrl";
 
 // Interface para a sala enriquecida com os dados do Ride Service
 interface EnrichedChatRoom extends ChatRoomData {
@@ -101,7 +102,7 @@ export default function ChatListPage() {
           const driver = typeof vehicle.user === 'object' ? vehicle.user : (vehicle.user_detail || room.driver || {});
           
           const driverName = driver.name || (room as any).motorista?.name || "Motorista Parceiro";
-          const driverAvatar = driver.photo || driver.avatar || "/driver-placeholder.png";
+          const driverAvatar = getImageUrl(driver.photo || driver.avatar, 'avatars') || "/driver-placeholder.png";
 
           // 2. Extrai Origem e Destino do campo JSONField do Ride Service
           const localOrigem = getLocationName(ride.origin || room.origin || (room as any).origem);
