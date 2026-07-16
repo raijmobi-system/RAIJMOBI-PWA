@@ -17,6 +17,8 @@ import { SearchFilterForm } from '@/components/template/SearchFilterForm';
 import { RideService } from '@/services/ride/rideService';
 import { ReservationService } from '@/services/ride/reservationService';
 import { VehicleService } from '@/services/ride/vehicleService'; // 🌟 Importado para buscar dados do veículo
+import { api } from '@/services/InterceptRequisition'; // 🌟 Usado para buscar os dados reais do motorista
+import { toast } from '@/lib/toast';
 
 // Ícones
 import { 
@@ -29,7 +31,7 @@ import {
   ManageSearch
 } from '@material-symbols-svg/react';
 
-const GATEWAY_URL = 'http://34.10.220.97:8000'; // Altere para o seu IP/Domínio público de produção quando necessário
+const GATEWAY_URL = 'http://localhost:8000'; // Altere para o seu IP/Domínio público de produção quando necessário
 
 /* ==========================================================================
    🌟 FUNÇÃO BLINDADA DE RESOLUÇÃO DE URL DE IMAGENS
@@ -75,11 +77,12 @@ const getImageUrl = (rawPhoto: string | null | undefined, defaultFolder: string 
 interface RideDetailsProps {
   ride: any;
   vehicleMap: Record<string, any>; // 🌟 Recebe o mapa com os veículos buscados
+  driverMap: Record<string, any>; // 🌟 Recebe o mapa com os motoristas buscados (nome, foto, avaliação real)
   onClose: () => void;
   onSuccess: () => void;
 }
 
-const RideDetailsContent = ({ ride, vehicleMap, onClose, onSuccess }: RideDetailsProps) => {
+const RideDetailsContent = ({ ride, vehicleMap, driverMap, onClose, onSuccess }: RideDetailsProps) => {
   const [requestedSeats, setRequestedSeats] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +90,10 @@ const RideDetailsContent = ({ ride, vehicleMap, onClose, onSuccess }: RideDetail
   // 🌟 Resolve o veículo buscando no mapa caso a API tenha mandado apenas a string do UUID
   const vehicleId = typeof ride?.vehicle === 'string' ? ride.vehicle : ride?.vehicle?.id;
   const vehicle = typeof ride?.vehicle === 'object' ? ride.vehicle : (vehicleId ? vehicleMap[vehicleId] : (ride?.vehicle_detail || {}));
-  const driver = typeof vehicle?.user === 'object' ? vehicle.user : (vehicle?.user_detail || (typeof ride?.driver === 'object' ? ride.driver : {}));
+
+  // 🌟 Resolve o motorista buscando no mapa caso a API tenha mandado apenas a string do UUID
+  const driverId = typeof vehicle?.user === 'string' ? vehicle.user : vehicle?.user?.id;
+  const driver = typeof vehicle?.user === 'object' ? vehicle.user : (driverId ? driverMap[driverId] : (vehicle?.user_detail || (typeof ride?.driver === 'object' ? ride.driver : {})));
   
   const priceUnit = Number(ride?.price || 0);
   const totalPrice = priceUnit * requestedSeats;
@@ -110,7 +116,7 @@ const RideDetailsContent = ({ ride, vehicleMap, onClose, onSuccess }: RideDetail
         status: 'pendente',
       } as any);
 
-      alert("🎉 Reserva solicitada com sucesso!");
+      toast.success("🎉 Reserva solicitada com sucesso!");
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -141,7 +147,11 @@ const RideDetailsContent = ({ ride, vehicleMap, onClose, onSuccess }: RideDetail
             <Text weight="bold" color="primary">{driver?.name || 'Motorista Parceiro'}</Text>
             <VerifiedUser className={css({ color: '#547812', fontSize: '16px' })} />
           </Flex>
-          <Text size="xs" color="muted">Avaliação: ★ 4.9</Text>
+          <Text size="xs" color="muted">
+            {driver?.average_rating && Number(driver.average_rating) > 0
+              ? `Avaliação: ★ ${Number(driver.average_rating).toFixed(1)}`
+              : 'Motorista novo por aqui'}
+          </Text>
         </Flex>
       </Flex>
 
@@ -256,6 +266,8 @@ function ResultadosContent() {
   
   // 🌟 ESTADO DO MAPA DE VEÍCULOS (Armazena { [id_do_veiculo]: objeto_completo })
   const [vehicleMap, setVehicleMap] = useState<Record<string, any>>({});
+  // 🌟 ESTADO DO MAPA DE MOTORISTAS (Armazena { [id_do_motorista]: objeto_completo, com average_rating real })
+  const [driverMap, setDriverMap] = useState<Record<string, any>>({});
 
   const originQuery = searchParams.get('origin') || '';
   const destinationQuery = searchParams.get('destination') || '';
@@ -270,23 +282,48 @@ function ResultadosContent() {
       )
     );
 
-    if (idsToFetch.length === 0) return;
+    if (idsToFetch.length > 0) {
+      const newVehicleMap: Record<string, any> = {};
+      await Promise.all(
+        idsToFetch.map(async (id) => {
+          try {
+            const response = await VehicleService.getById(id);
+            newVehicleMap[id] = response.data;
+          } catch (err) {
+            console.warn(`Não foi possível carregar o veículo ${id}:`, err);
+            newVehicleMap[id] = { model: 'Veículo Parceiro', photo: null };
+          }
+        })
+      );
 
-    const newMap: Record<string, any> = {};
-    await Promise.all(
-      idsToFetch.map(async (id) => {
-        try {
-          const response = await VehicleService.getById(id);
-          newMap[id] = response.data;
-        } catch (err) {
-          console.warn(`Não foi possível carregar o veículo ${id}:`, err);
-          newMap[id] = { model: 'Veículo Parceiro', photo: null };
-        }
-      })
-    );
+      setVehicleMap(prev => ({ ...prev, ...newVehicleMap }));
 
-    setVehicleMap(prev => ({ ...prev, ...newMap }));
-  }, [vehicleMap]);
+      // 🌟 Com os veículos em mãos, busca os dados reais do motorista (nome, foto, average_rating)
+      const driverIdsToFetch = Array.from(
+        new Set(
+          Object.values(newVehicleMap)
+            .map((v: any) => v?.user)
+            .filter((id: any) => id && typeof id === 'string' && !driverMap[id])
+        )
+      );
+
+      if (driverIdsToFetch.length > 0) {
+        const newDriverMap: Record<string, any> = {};
+        await Promise.all(
+          driverIdsToFetch.map(async (id) => {
+            try {
+              const response = await api.get(`/api/ride/users/${id}/`);
+              newDriverMap[id] = response.data;
+            } catch (err) {
+              console.warn(`Não foi possível carregar o motorista ${id}:`, err);
+            }
+          })
+        );
+
+        setDriverMap(prev => ({ ...prev, ...newDriverMap }));
+      }
+    }
+  }, [vehicleMap, driverMap]);
 
   const fetchRides = useCallback(async (customFilters?: any) => {
     setLoading(true);
@@ -301,15 +338,18 @@ function ResultadosContent() {
       const resultsList = data?.results || (Array.isArray(data) ? data : []);
       
       setRides(resultsList);
-      
-      // 🌟 Dispara a busca dos dados de cada veículo assim que as viagens chegam!
+
+      // 🌟 O RideSerializer só manda o UUID do veículo (não vem aninhado),
+      // então buscamos os detalhes reais do veículo e do motorista aqui.
       fetchVehicleDetails(resultsList);
+
     } catch (err) {
       console.error("Erro ao buscar caronas:", err);
     } finally {
       setLoading(false);
     }
-  }, [originQuery, destinationQuery, fetchVehicleDetails]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [originQuery, destinationQuery]);
 
   useEffect(() => {
     //eslint-disable-next-line
@@ -368,12 +408,12 @@ function ResultadosContent() {
             const origCity = getCityName(ride.origin);
             const priceVal = Number(ride.price || 0);
 
-            // 🌟 RESOLUÇÃO DINÂMICA DO VEÍCULO: Verifica se veio objeto ou se busca no vehicleMap
-            const vehicleId = typeof ride?.vehicle === 'string' ? ride.vehicle : ride?.vehicle?.id;
-            const vehicle = typeof ride?.vehicle === 'object' ? ride.vehicle : (vehicleId ? vehicleMap[vehicleId] : (ride?.vehicle_detail || {}));
-            
-            const vehicleModel = vehicle?.model || 'Veículo Parceiro';
-            const vehiclePhoto = getImageUrl(vehicle?.photo, 'vehicles') || '/driver-placeholder.png';
+            // 🌟 O backend só manda o UUID do veículo em ride.vehicle; resolvemos no vehicleMap
+            const rideVehicleId = typeof ride.vehicle === 'string' ? ride.vehicle : ride.vehicle?.id;
+            const vehicle = (typeof ride.vehicle === 'object' ? ride.vehicle : (rideVehicleId ? vehicleMap[rideVehicleId] : null)) || {};
+
+            const vehicleModel = vehicle.model || 'Veículo Parceiro';
+            const vehiclePhoto = getImageUrl(vehicle.photo, 'vehicles') || '/driver-placeholder.png';
 
             return (
               <div 
@@ -464,9 +504,10 @@ function ResultadosContent() {
         title="Detalhes da Viagem"
       >
         {selectedRide && (
-          <RideDetailsContent 
+          <RideDetailsContent
             ride={selectedRide}
             vehicleMap={vehicleMap}
+            driverMap={driverMap}
             onClose={() => setSelectedRide(null)}
             onSuccess={() => {
               fetchRides();

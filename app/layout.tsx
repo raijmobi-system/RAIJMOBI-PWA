@@ -7,8 +7,10 @@ import 'leaflet/dist/leaflet.css';
 import { usePathname } from 'next/navigation';
 
 import Navigation from "@/components/fixed/Navigation";
-import DynamicHeader from "@/components/fixed/DynamicHeader"; 
-import { useEffect } from "react";
+import Sidebar from "@/components/fixed/Sidebar";
+import DynamicHeader from "@/components/fixed/DynamicHeader";
+import Toaster from "@/components/fixed/Toaster";
+import { useEffect, useState } from "react";
 import { initSocialLogin } from "@/services/user/SocialLoginProvider";
 
 const manrope = Manrope({
@@ -23,12 +25,44 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
+
+  // 🌟 ESTADOS DE CONTROLE DE ROTA SEGUROS PARA CAPACITOR
+  const [isChatPage, setIsChatPage] = useState(false);
+  const [isUserPage, setIsUserPage] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
     initSocialLogin().catch(console.error);
+    //eslint-disable-next-line
+    setMounted(true);
   }, []);
-  // 1. VERIFICAÇÕES DE ROTA
-  const isChatPage = pathname?.includes('/chat/conversation');
-  const isUserPage = pathname?.startsWith('/user'); 
+
+  // 🌟 SINCRONIZAÇÃO HÍBRIDA DA ROTA (Trata .html, hash, Capacitor e Web)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const currentPath = (pathname || '').toLowerCase();
+      const windowPath = window.location.pathname.toLowerCase();
+      const windowHash = window.location.hash.toLowerCase();
+
+      // Checa se é rota de Chat
+      const chatActive = 
+        currentPath.includes('/chat/conversation') || 
+        windowPath.includes('/chat/conversation') ||
+        windowHash.includes('/chat/conversation');
+
+      // Checa se é rota de login/cadastro
+      const userActive = 
+        currentPath.startsWith('/user') || 
+        windowPath.startsWith('/user') ||
+        windowHash.includes('/user');
+      //eslint-disable-next-line
+      setIsChatPage(chatActive);
+      setIsUserPage(userActive);
+    }
+  }, [pathname]);
+
+  // Se for página de login/cadastro (/user) ou chat (/chat/conversation), removemos o espaço do Grid
+  const isFullScreen = isUserPage || isChatPage;
 
   return (
     <html
@@ -42,10 +76,10 @@ export default function RootLayout({
 
         paddingTop: 'env(safe-area-inset-top, 0px)', 
 
-        // 2. GRID MOBILE DINÂMICO
-        gridTemplateRows: isUserPage ? '1fr' : 'auto 1fr auto',
+        // 🌟 GRID MOBILE DINÂMICO: Se for chat ou user, o conteúdo ocupa 100% da tela (1fr) sem reservar espaço para Header/Bottom
+        gridTemplateRows: isFullScreen ? '1fr' : 'auto 1fr auto',
         gridTemplateColumns: '1fr',
-        gridTemplateAreas: isUserPage 
+        gridTemplateAreas: isFullScreen 
           ? `"main"` 
           : `
             "header"
@@ -54,34 +88,34 @@ export default function RootLayout({
           `,
 
         md: {
-          // 3. GRID DESKTOP DINÂMICO (Evita o buraco de 80px à esquerda)
-          gridTemplateRows: isUserPage ? '1fr' : 'auto 1fr',
-          gridTemplateColumns: isUserPage ? '1fr' : '80px 1fr',
-          gridTemplateAreas: isUserPage 
+          // 🌟 GRID DESKTOP DINÂMICO
+          gridTemplateRows: isFullScreen ? '1fr' : 'auto 1fr',
+          gridTemplateColumns: isFullScreen ? '1fr' : '260px 1fr',
+          gridTemplateAreas: isFullScreen
             ? `"main"`
             : `
               "aside header"
               "aside main"
             `,
-          paddingTop: '0px', 
+          paddingTop: '0px',
         },
       })}>
 
-        {/* HEADER OCULTO EM /user */}
-        {!isUserPage && <DynamicHeader/>}
+        {/* HEADER OCULTO EM /user E NO CHAT */}
+        {mounted && !isUserPage && !isChatPage && <DynamicHeader/>}
 
-        {/* ASIDE OCULTO EM /user */}
-        {!isUserPage && (
+        {/* MENU LATERAL (DESKTOP) OCULTO EM /user E NO CHAT */}
+        {mounted && !isUserPage && !isChatPage && (
           <aside
             className={css({
               gridArea: 'aside',
-              background: '#363636',
-              padding: '6',
+              background: '#262626',
+              padding: '5',
               display: 'none',
               md: { display: 'flex', flexDirection: 'column' },
             })}
           >
-            <Navigation direction="column" />
+            <Sidebar />
           </aside>
         )}
 
@@ -89,8 +123,8 @@ export default function RootLayout({
           {children} 
         </main>
 
-        {/* FOOTER OCULTO NO CHAT E EM /user */}
-        {!isChatPage && !isUserPage && (
+        {/* MENU INFERIOR (MOBILE) OCULTO NO CHAT E EM /user */}
+        {mounted && !isChatPage && !isUserPage && (
           <footer className={css({
             gridArea: 'bottom',
             background: '#262626',
@@ -106,6 +140,8 @@ export default function RootLayout({
             <Navigation direction="row"/>
           </footer>
         )}
+
+        <Toaster />
 
       </body>
     </html>

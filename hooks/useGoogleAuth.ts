@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SocialLogin } from '@capgo/capacitor-social-login';
+import { toast } from '@/lib/toast';
 
 export function useGoogleAuth() {
   const [loading, setLoading] = useState(false);
@@ -31,7 +32,7 @@ export function useGoogleAuth() {
       }
 
       // 3. Envia o token para o seu back-end Django
-      const responseApi = await fetch('http://34.10.220.97:8000/api/auth/google/', {
+      const responseApi = await fetch('http://localhost:8000/api/auth/google/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -61,7 +62,7 @@ export function useGoogleAuth() {
 
     } catch (error: any) {
       console.error('Erro no login com Google:', error);
-      alert('Falha ao realizar login: ' + (error.message || 'Tente novamente.'));
+      toast.error('Falha ao realizar login: ' + (error.message || 'Tente novamente.'));
     } finally {
       setLoading(false);
     }

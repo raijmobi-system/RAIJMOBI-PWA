@@ -9,6 +9,7 @@ import { IconButton } from '@/components/atoms/action';
 import { Flex } from '@/styled-system/jsx';
 import { Text } from '@/components/atoms/typography';
 import { Avatar } from '@/components/atoms/presentation';
+import ChatMessage from '@/components/molecules/ChatMessage';
 import { css } from "@/styled-system/css";
 
 // 🌟 Importação do ícone de enviar
@@ -61,6 +62,18 @@ function ConversationContent() {
       return '';
     };
 
+    // 🌟 Mantém um cache local de nomes por ID para preencher lacunas (ex.: se um evento chegar sem nome)
+    const nameById = new Map<string, string>();
+
+    const getUserNameFromMsg = (m: any, senderId: string): string => {
+      const rawName = m.usuario_nome || m.usuario?.name;
+      if (rawName) {
+        nameById.set(senderId, rawName);
+        return rawName;
+      }
+      return nameById.get(senderId) || 'Participante';
+    };
+
     async function inicializarChat() {
       try {
         const roomData = await chatService.getRoomDetail(caronaId);
@@ -71,10 +84,11 @@ function ConversationContent() {
         const formattedHistory: MessageData[] = historicalData.map((msg) => {
           const rawSenderId = getUserIdFromMsg(msg);
           const cleanSenderId = rawSenderId.replace(/['"]/g, '').trim().toLowerCase();
-          
+
           return {
             message: msg.conteudo,
             usuario_id: cleanSenderId,
+            usuario_nome: getUserNameFromMsg(msg, cleanSenderId),
             is_me: cleanSenderId !== '' && cleanSenderId === safeUserId,
             data_envio: msg.data_envio,
           };
@@ -91,6 +105,7 @@ function ConversationContent() {
             const messageWithAuth: MessageData = {
               ...newData,
               usuario_id: cleanSenderId,
+              usuario_nome: getUserNameFromMsg(newData, cleanSenderId),
               is_me: cleanSenderId !== '' && cleanSenderId === safeUserId
             };
 
@@ -199,27 +214,26 @@ function ConversationContent() {
         className={css({ p: '4', overflowY: 'auto', flex: '1', bg: '#fdfdfd' })}
       >
         {messages.map((msg, index) => {
-          // A validação já foi feita de forma rigorosa lá em cima
-          const isMyMessage = msg.is_me;
+          const formatMsgTime = (isoString: string) => {
+            try {
+              if (!isoString) return '';
+              const date = new Date(isoString);
+              if (isNaN(date.getTime())) return '';
+              return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } catch {
+              return '';
+            }
+          };
 
           return (
-            <Flex
+            <ChatMessage
               key={index}
-              direction="column"
-              className={css({
-                maxWidth: '75%',
-                p: '3',
-                borderRadius: 'xl',
-                borderBottomRightRadius: isMyMessage ? '2px' : 'xl',
-                borderBottomLeftRadius: !isMyMessage ? '2px' : 'xl',
-                alignSelf: isMyMessage ? 'flex-end' : 'flex-start',
-                bg: isMyMessage ? '#547812' : '#f3f4f6', 
-                color: isMyMessage ? 'white' : 'gray.800',
-                boxShadow: 'sm'
-              })}
-            >
-              <Text className={css({ fontSize: 'sm', color: 'inherit' })}>{msg.message}</Text>
-            </Flex>
+              isMe={msg.is_me}
+              text={msg.message}
+              time={formatMsgTime(msg.data_envio)}
+              author={msg.is_me ? 'Você' : msg.usuario_nome}
+              avatarSrc="/driver-placeholder.png"
+            />
           );
         })}
         <div ref={chatEndRef} />

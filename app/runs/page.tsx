@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Flex, Box } from '@/styled-system/jsx';
-import { css } from "@/styled-system/css"; 
+import { css } from "@/styled-system/css";
 
 // Ferramentas Nativas do Capacitor + JWT
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
@@ -14,8 +14,8 @@ import { Button } from '@/components/atoms/action';
 import { FrameComponent } from "@/components/organisms";
 import { Text } from '@/components/atoms/typography';
 import { CardComponent } from '@/components/molecules';
-import Modal from "@/components/fixed/Modal"; 
-import RatingModal from "@/components/template/RatingModal"; 
+import Modal from "@/components/fixed/Modal";
+import RatingModal from "@/components/template/RatingModal";
 
 // Serviços Reais da API
 import { api } from '@/services/InterceptRequisition';
@@ -24,14 +24,29 @@ import { ReservationService } from '@/services/ride/reservationService';
 import { StripePaymentServiceFront } from '@/services/stripe/stripeService';
 
 // Ícones do Material Symbols
-import { 
-  Star, 
-  Percent, 
+import {
+  Star,
+  Percent,
   VerifiedUser,
   Add,
 } from '@material-symbols-svg/react';
 
 type TabType = 'passageiro' | 'motorista';
+
+/* =========================================
+   UTILITÁRIO: Obter ID do usuário logado via token
+========================================= */
+const getUserIdFromToken = async (): Promise<string | null> => {
+  try {
+    const { value: token } = await SecureStoragePlugin.get({ key: 'access_token' });
+    if (!token) return null;
+    const decoded: any = jwtDecode(token);
+    return decoded.user_id || null;
+  } catch (error) {
+    console.error("Erro ao obter user_id do token:", error);
+    return null;
+  }
+};
 
 /* =========================================
    COMPONENTE AUXILIAR: BANNER DE FEEDBACK EM TELA
@@ -40,12 +55,12 @@ const FeedbackBanner = ({ type, message }: { type: 'success' | 'error' | null, m
   if (!type || !message) return null;
   const isSuccess = type === 'success';
   return (
-    <Box 
-      p="3" 
-      mb="3" 
+    <Box
+      p="3"
+      mb="3"
       borderRadius="xl"
       border="1px solid"
-      bg={isSuccess ? "#f0f7e5" : "red.50"} 
+      bg={isSuccess ? "#f0f7e5" : "red.50"}
       borderColor={isSuccess ? "#cce5a3" : "red.200"}
     >
       <Text size="sm" color={isSuccess ? "success" : "danger"} weight="medium">
@@ -57,7 +72,6 @@ const FeedbackBanner = ({ type, message }: { type: 'success' | 'error' | null, m
 
 /* =========================================
    COMPONENTE AUXILIAR: MODAL DE CONFIRMAÇÃO CUSTOMIZADO
-   Substitui os window.confirm e alert nativos do navegador
 ========================================= */
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -76,28 +90,28 @@ const ConfirmModal = ({ isOpen, title, message, onConfirm, onClose, loading }: C
         <Text size="md" color="muted" weight="medium">
           {message}
         </Text>
-        
+
         <Flex gap="3" mt="2">
-          <button 
+          <button
             type="button"
-            onClick={onClose} 
+            onClick={onClose}
             disabled={loading}
-            className={css({ 
-              flex: 1, 
-              py: "3", 
-              border: "1px solid", 
-              borderColor: "gray.300", 
-              borderRadius: "xl", 
-              bg: "white", 
-              color: "gray.700", 
-              fontWeight: "bold", 
+            className={css({
+              flex: 1,
+              py: "3",
+              border: "1px solid",
+              borderColor: "gray.300",
+              borderRadius: "xl",
+              bg: "white",
+              color: "gray.700",
+              fontWeight: "bold",
               cursor: "pointer",
-              _hover: { bg: "gray.50" } 
+              _hover: { bg: "gray.50" }
             })}
           >
             Voltar
           </button>
-          
+
           <div className={css({ flex: 1 })}>
             <Button width="full" onClick={onConfirm} disabled={loading}>
               <Text color="white" weight="bold">
@@ -135,7 +149,7 @@ const RouteDisplay = ({ title, origin, destination }: { title: string, origin: s
    COMPONENTE: DETALHES NO MODAL
 ========================================= */
 interface RideDetailsProps {
-  item: any; 
+  item: any;
   role: 'motorista' | 'passageiro';
   onClose: () => void;
   onEditClick: (ride: any) => void;
@@ -144,11 +158,11 @@ interface RideDetailsProps {
 }
 
 const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel, onRatingClick }: RideDetailsProps) => {
-  const router = useRouter(); 
-  
+  const router = useRouter();
+
   const [canceling, setCanceling] = useState(false);
   const [pagando, setPagando] = useState(false);
-  const [updatingStatus, setUpdatingStatus] = useState(false); 
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const [feedbackType, setFeedbackType] = useState<'success' | 'error' | null>(null);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
@@ -172,8 +186,8 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
 
   const triggerUpdateRideStatus = (newStatus: 'em_andamento' | 'finalizada') => {
     if (!ride?.id) return;
-    const msg = newStatus === 'em_andamento' 
-      ? "Quer mesmo começar essa carona agora?" 
+    const msg = newStatus === 'em_andamento'
+      ? "Quer mesmo começar essa carona agora?"
       : "Quer mesmo terminar essa carona?";
 
     setConfirmDialog({
@@ -206,7 +220,7 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
 
   const triggerCancelParticipation = () => {
     if (!reservationId) return;
-    
+
     setConfirmDialog({
       isOpen: true,
       title: "Cancelar Participação",
@@ -274,8 +288,8 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
         </Flex>
         <Text fontSize='20px' color='special' weight='bold'>R$ {ride.price || '0,00'}</Text>
       </Flex>
-      
-      <CardComponent 
+
+      <CardComponent
         hasPadding={true}
         backgroundColor="transparent"
         direction='row'
@@ -298,13 +312,13 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
       />
 
       <Flex direction="column" gap="2" mt="2">
-        <Button 
-          width='full' 
+        <Button
+          width='full'
           onClick={() => {
-            onClose(); 
+            onClose();
             router.push(`/runs/monitoring?id=${ride.id}`);
-          }} 
-          className={css({ bg: '#3b82f6' })} 
+          }}
+          className={css({ bg: '#3b82f6' })}
         >
           <Text color='white' weight='bold'>Acompanhar Rota no Mapa</Text>
         </Button>
@@ -313,20 +327,20 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
           <>
             {['pendente', 'confirmada'].includes(ride.status?.toLowerCase()) && (
               <>
-                <Button 
-                  width='full' 
-                  onClick={() => triggerUpdateRideStatus('em_andamento')} 
+                <Button
+                  width='full'
+                  onClick={() => triggerUpdateRideStatus('em_andamento')}
                   disabled={updatingStatus}
-                  className={css({ bg: '#547812' })} 
+                  className={css({ bg: '#547812' })}
                 >
                   <Text color='white' weight='bold'>
                     {updatingStatus ? 'Iniciando...' : 'Começar Carona'}
                   </Text>
                 </Button>
 
-                <Button 
-                  width='full' 
-                  onClick={() => onEditClick(ride)} 
+                <Button
+                  width='full'
+                  onClick={() => onEditClick(ride)}
                   disabled={updatingStatus}
                   variant="outline"
                   className={css({ borderColor: 'primary' })}
@@ -337,11 +351,11 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
             )}
 
             {ride.status?.toLowerCase() === 'em_andamento' && (
-              <Button 
-                width='full' 
-                onClick={() => triggerUpdateRideStatus('finalizada')} 
+              <Button
+                width='full'
+                onClick={() => triggerUpdateRideStatus('finalizada')}
                 disabled={updatingStatus}
-                className={css({ bg: 'red.500' })} 
+                className={css({ bg: 'red.500' })}
               >
                 <Text color='white' weight='bold'>
                   {updatingStatus ? 'Finalizando...' : 'Terminar Carona'}
@@ -363,8 +377,8 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
               <Button
                 width="full"
                 onClick={() => {
-                  onClose(); 
-                  if (onRatingClick) onRatingClick(item); 
+                  onClose();
+                  if (onRatingClick) onRatingClick(item);
                 }}
                 className={css({ bg: '#FFC107', _hover: { bg: '#FFA000' } })}
               >
@@ -385,14 +399,14 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
               </Button>
             )}
 
-            <Button 
-              width='full' 
+            <Button
+              width='full'
               onClick={triggerCancelParticipation}
               disabled={isAlreadyCanceled || canceling || isLocked || pagando}
-              className={css({ 
-                bg: isAlreadyCanceled || isLocked ? 'gray.100' : 'red.50', 
-                border: '1px solid', 
-                borderColor: isAlreadyCanceled || isLocked ? 'gray.300' : 'red.200' 
+              className={css({
+                bg: isAlreadyCanceled || isLocked ? 'gray.100' : 'red.50',
+                border: '1px solid',
+                borderColor: isAlreadyCanceled || isLocked ? 'gray.300' : 'red.200'
               })}
             >
               <Text color={isAlreadyCanceled || isLocked ? 'muted' : 'white'} weight='bold'>
@@ -404,7 +418,7 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
       </Flex>
 
       {confirmDialog && (
-        <ConfirmModal 
+        <ConfirmModal
           isOpen={confirmDialog.isOpen}
           title={confirmDialog.title}
           message={confirmDialog.message}
@@ -422,11 +436,11 @@ const RideDetailsContent = ({ item, role, onClose, onEditClick, onSuccessCancel,
 ====================================================== */
 function RunsContent() {
   const router = useRouter();
-  const searchParams = useSearchParams(); 
-  
+  const searchParams = useSearchParams();
+
   const [activeTab, setActiveTab] = useState<TabType>('passageiro');
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
-  
+
   const [items, setItems] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -436,7 +450,12 @@ function RunsContent() {
   const [screenFeedbackMsg, setScreenFeedbackMsg] = useState<string | null>(null);
 
   const [showRatingModal, setShowRatingModal] = useState(false);
-  const [ratingData, setRatingData] = useState({ reservationId: '', driverId: '', driverName: '' });
+  const [ratingData, setRatingData] = useState({
+    reservationId: '',
+    driverId: '',
+    driverName: '',
+    evaluatorId: '',
+  });
 
   const fetchItems = useCallback(async (pageNumber: number, tab: TabType) => {
     setLoading(true);
@@ -462,7 +481,7 @@ function RunsContent() {
         if (userId) params.passenger = userId;
         response = await ReservationService.getAll(params);
       }
-      
+
       const newResults = response.data?.results || response.data || [];
       setHasMore(!!response.data?.next);
       setItems(prev => pageNumber === 1 ? newResults : [...prev, ...newResults]);
@@ -500,7 +519,7 @@ function RunsContent() {
         setScreenFeedbackMsg("O pagamento via web foi cancelado pelo usuário.");
         router.replace('/runs');
       }
-      
+
       if (paymentStatus) {
         setTimeout(() => {
           setScreenFeedbackType(null);
@@ -526,7 +545,7 @@ function RunsContent() {
 
   const observer = useRef<IntersectionObserver | null>(null);
   const lastElementRef = useCallback((node: HTMLDivElement | null) => {
-    if (loading) return; 
+    if (loading) return;
     if (observer.current) observer.current.disconnect();
 
     observer.current = new IntersectionObserver(entries => {
@@ -540,29 +559,105 @@ function RunsContent() {
 
   const openDetails = (item: any) => setSelectedItem(item);
   const closeModal = () => setSelectedItem(null);
-  
+
   const handleEditRedirect = (ride: any) => {
     closeModal();
     router.push(`/runs/create?edit=${ride.id}`);
   };
+
+  // ============================================================
+  // FUNÇÃO PARA ABRIR O MODAL DE AVALIAÇÃO COM TODOS OS DADOS
+  // ============================================================
+  const handleOpenRatingModal = async (reservation: any) => {
+  console.log("🔍 Iniciando handleOpenRatingModal com reserva:", reservation);
+
+  // 1. Obter evaluatorId do token
+  const evaluatorId = await getUserIdFromToken();
+  if (!evaluatorId) {
+    setScreenFeedbackType('error');
+    setScreenFeedbackMsg('Usuário não identificado. Faça login novamente.');
+    setTimeout(() => setScreenFeedbackType(null), 3000);
+    return;
+  }
+  console.log("✅ Evaluator ID obtido:", evaluatorId);
+
+  // 2. Extrair rideId
+  const rideId = reservation.ride?.id || reservation.ride;
+  if (!rideId) {
+    setScreenFeedbackType('error');
+    setScreenFeedbackMsg('ID da carona não encontrado.');
+    return;
+  }
+  console.log("🚗 Ride ID:", rideId);
+
+  try {
+    // 3. Buscar detalhes da carona
+    const rideResponse = await RideService.getById(rideId);
+    const rideData = rideResponse.data;
+    console.log("📦 Dados da carona:", rideData);
+
+    const vehicleId = rideData.vehicle;
+    if (!vehicleId) {
+      throw new Error('Veículo não encontrado na carona.');
+    }
+    console.log("🚙 Vehicle ID:", vehicleId);
+
+    // 4. Buscar detalhes do veículo (inclui o user)
+    const vehicleResponse = await api.get(`/api/ride/vehicles/${vehicleId}/`);
+    const vehicleData = vehicleResponse.data;
+    console.log("🚘 Dados do veículo:", vehicleData);
+
+    const driverId = vehicleData.user; // Deve ser o UUID do motorista
+    if (!driverId) {
+      throw new Error('Campo "user" não encontrado no veículo.');
+    }
+    console.log("👤 Driver ID:", driverId);
+
+    // 5. (Opcional) Buscar nome do motorista
+    let driverName = 'Motorista Parceiro';
+    try {
+      const userResponse = await api.get(`/api/ride/users/${driverId}/`);
+      driverName = userResponse.data.name || driverName;
+      console.log("📛 Nome do motorista:", driverName);
+    } catch (userError) {
+      console.warn('⚠️ Não foi possível obter o nome do motorista, usando fallback.');
+    }
+
+    // 6. Preencher estado e abrir modal
+    setRatingData({
+      reservationId: reservation.id,
+      driverId: String(driverId),
+      driverName: driverName,
+      evaluatorId: evaluatorId,
+    });
+    setShowRatingModal(true);
+    console.log("✅ Modal de avaliação aberto com sucesso!");
+  } catch (error: any) {
+    console.error('❌ Erro ao obter dados do motorista:', error);
+    const msg = error?.response?.data?.detail || error.message || 'Não foi possível identificar o motorista.';
+    setScreenFeedbackType('error');
+    setScreenFeedbackMsg(msg);
+    setTimeout(() => setScreenFeedbackType(null), 3000);
+  }
+};
 
   return (
     <Flex direction='column' height='100%' bg="#f9f9f9">
       <FrameComponent
         actions={
           <Flex direction='row' width='100%' height='60px' background='#363636' alignItems='center' gap='10px' padding='6px' borderRadius='10px'>
-            <Button 
-              width='full' 
-              variant={activeTab === 'passageiro' ? 'solid' : 'ghost'} 
-              onClick={() => setActiveTab('passageiro')} 
+            <Button
+              width='full'
+              variant={activeTab === 'passageiro' ? 'solid' : 'ghost'}
+              onClick={() => setActiveTab('passageiro')}
               className={css({ color: activeTab === 'passageiro' ? 'white' : 'muted' })}
             >
               Passageiro
             </Button>
-            <Button 
-              width='full' 
-              variant={activeTab === 'motorista' ? 'solid' : 'ghost'} 
-              onClick={() => setActiveTab('motorista')} 
+            <Button
+              width='full'
+              variant={activeTab === 'motorista' ? 'solid' : 'ghost'}
+              onClick={() => setActiveTab('motorista')}
               className={css({ color: activeTab === 'motorista' ? 'white' : 'muted' })}
             >
               Motorista
@@ -571,17 +666,17 @@ function RunsContent() {
         }
       >
         <Flex direction="column" paddingY="4" gap="4">
-          
+
           <FeedbackBanner type={screenFeedbackType} message={screenFeedbackMsg} />
 
           {activeTab === 'motorista' && (
-            <Button 
+            <Button
               onClick={() => router.push('/runs/create')}
               width="full"
               variant="outline"
               className={css({ border: '2px dashed', borderColor: '#547812', height: '60px' })}
             >
-              <Add color="#547812"/> 
+              <Add color="#547812" />
               <Text weight="bold" color='success'>Criar Nova Carona</Text>
             </Button>
           )}
@@ -607,10 +702,10 @@ function RunsContent() {
             const showRatingButton = activeTab === 'passageiro' && isRideFinished && isReservationConfirmed;
 
             return (
-              <div 
-                key={item.id} 
+              <div
+                key={item.id}
                 ref={isLastElement ? lastElementRef : null}
-                onClick={() => openDetails(item)} 
+                onClick={() => openDetails(item)}
                 className={css({ cursor: 'pointer' })}
               >
                 <CardComponent
@@ -627,41 +722,22 @@ function RunsContent() {
                         <Text size="xs" color="muted">{item.requested_seats} vaga(s)</Text>
                       )}
 
-                      {/* 🌟 BOTÃO AVALIAR ÚNICO (SEM DUPLICAÇÃO) E COM BUSCA ROBUSTA DE ID */}
                       {showRatingButton && (
-                        <Button 
+                        <Button
                           size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation(); 
-
-                            const driverId = rideData.driver?.id || 
-                                             rideData.driver || 
-                                             rideData.vehicle?.user?.id || 
-                                             rideData.vehicle?.user || 
-                                             rideData.vehicle_detail?.user?.id ||
-                                             '';
-
-                            const driverName = rideData.driver?.name || 
-                                               rideData.vehicle?.user?.name || 
-                                               rideData.vehicle_detail?.user?.name || 
-                                               'Motorista Parceiro';
-
-                            setRatingData({
-                              reservationId: item.id,
-                              driverId: String(driverId),
-                              driverName: driverName
-                            });
-                            setShowRatingModal(true);
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await handleOpenRatingModal(item);
                           }}
-                          className={css({ 
-                            bg: '#FFC107', 
+                          className={css({
+                            bg: '#FFC107',
                             mt: '1',
                             px: '3',
                             py: '1',
                             height: 'auto',
                             minHeight: '28px',
                             borderRadius: 'md',
-                            _hover: { bg: '#FFA000' } 
+                            _hover: { bg: '#FFA000' }
                           })}
                         >
                           <Text color="white" weight="bold" size="xs">Avaliar</Text>
@@ -683,26 +759,19 @@ function RunsContent() {
         </Flex>
       </FrameComponent>
 
-      <Modal 
-        isOpen={!!selectedItem} 
-        onClose={closeModal} 
+      <Modal
+        isOpen={!!selectedItem}
+        onClose={closeModal}
         title={activeTab === 'motorista' ? 'Detalhes da Carona' : 'Detalhes da Reserva'}
       >
         {selectedItem && (
-          <RideDetailsContent 
-            item={selectedItem} 
-            role={activeTab} 
-            onClose={closeModal} 
+          <RideDetailsContent
+            item={selectedItem}
+            role={activeTab}
+            onClose={closeModal}
             onEditClick={handleEditRedirect}
             onSuccessCancel={reloadCurrentTab}
-            onRatingClick={(reservation) => {
-              setRatingData({
-                reservationId: reservation.id,
-                driverId: reservation.ride?.vehicle?.user?.id || reservation.ride?.vehicle?.user || '',
-                driverName: reservation.ride?.vehicle?.user?.name || 'Motorista Parceiro'
-              });
-              setShowRatingModal(true);
-            }}
+            onRatingClick={handleOpenRatingModal}
           />
         )}
       </Modal>
@@ -713,6 +782,7 @@ function RunsContent() {
         reservationId={ratingData.reservationId}
         driverId={ratingData.driverId}
         driverName={ratingData.driverName}
+        evaluatorId={ratingData.evaluatorId}  // <-- CORRIGIDO: usa ratingData
         onSuccess={() => {
           setScreenFeedbackType('success');
           setScreenFeedbackMsg("Obrigado por avaliar o motorista parceiro!");

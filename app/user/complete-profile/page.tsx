@@ -11,6 +11,7 @@ import { FormField } from "@/components/molecules/FormFIeld";
 
 // Sua instância Axios que injeta o Token JWT automaticamente
 import { api } from "@/services/InterceptRequisition";
+import { toast } from "@/lib/toast";
 
 import { Badge, CheckCircle } from "@material-symbols-svg/react";
 
@@ -38,7 +39,7 @@ export default function CompletarPerfilGoogle() {
 
   const handleCompleteSubmit = async () => {
     if (!cpf || !telefone) {
-      alert("Por favor, preencha o CPF e o Telefone.");
+      toast.error("Por favor, preencha o CPF e o Telefone.");
       return;
     }
 
@@ -58,12 +59,12 @@ export default function CompletarPerfilGoogle() {
       // Como estamos enviando FormData, o Axios e o Django resolvem o Multipart automaticamente
       await api.post("/api/profile/complete/", formData);
       
-      alert("Cadastro concluído com sucesso! Bem-vindo!");
+      toast.success("Cadastro concluído com sucesso! Bem-vindo!");
       router.replace("/dashboard");
     } catch (error: any) {
       console.error("Erro ao completar perfil:", error.response?.data || error.message);
-      alert(
-        JSON.stringify(error.response?.data?.detail || error.response?.data) || 
+      toast.error(
+        JSON.stringify(error.response?.data?.detail || error.response?.data) ||
         "Erro ao salvar os dados do perfil."
       );
     } finally {

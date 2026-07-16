@@ -38,6 +38,10 @@ export interface Ride {
   status: 'pendente' | 'confirmada' | 'em_andamento' | 'cancelada' | 'finalizada';
   price: number;
   ai_reason?: string; // Campo injetado pela IA viewset
+  driver?: {
+    id: string;
+    name: string;
+  };
 }
 
 export interface Reservation {

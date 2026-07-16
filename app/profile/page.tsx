@@ -29,7 +29,7 @@ import {
   CheckCircle
 } from "@material-symbols-svg/react";
 
-const GATEWAY_URL = 'http://34.10.220.97:8000'; // Centraliza a porta do Kong Gateway para entrega de mídias públicas
+const GATEWAY_URL = 'http://localhost:8000'; // Centraliza a porta do Kong Gateway para entrega de mídias públicas
 
 /* ========================================================
    🌟 FUNÇÃO INTELIGENTE DE RESOLUÇÃO DE URL DE IMAGENS

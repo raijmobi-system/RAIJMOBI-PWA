@@ -9,6 +9,7 @@ import { Text } from "@/components/atoms/typography";
 import { Button } from "@/components/atoms/action";
 import { FormField } from "@/components/molecules/FormFIeld";
 import { api } from "@/services/InterceptRequisition";
+import { toast } from "@/lib/toast";
 
 import { Lock, Send } from "@material-symbols-svg/react";
 
@@ -20,7 +21,7 @@ export default function EsqueciSenha() {
 
   const handleRequestReset = async () => {
     if (!email) {
-      alert("Por favor, preencha o seu e-mail.");
+      toast.error("Por favor, preencha o seu e-mail.");
       return;
     }
 
@@ -32,8 +33,8 @@ export default function EsqueciSenha() {
       setSucesso(true);
     } catch (error: any) {
       console.error("Erro ao solicitar redefinição:", error);
-      alert(
-        error.response?.data?.detail || 
+      toast.error(
+        error.response?.data?.detail ||
         "Erro ao solicitar a recuperação. Verifique o e-mail."
       );
     } finally {

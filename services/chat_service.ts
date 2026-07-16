@@ -21,7 +21,8 @@ export interface ChatRoomData {
 
 export interface ChatMessageBackend {
   id: number;
-  usuario: ChatUser;
+  usuario_id: string;
+  usuario_nome: string;
   conteudo: string;
   data_envio: string;
 }

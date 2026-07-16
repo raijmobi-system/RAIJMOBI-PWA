@@ -12,6 +12,7 @@ import { FormField } from "@/components/molecules/FormFIeld";
 
 // Sua instância Axios com interceptor e headers corretos
 import { api } from "@/services/InterceptRequisition";
+import { toast } from "@/lib/toast";
 
 // Ícones do Material Symbols para dar identidade visual aos passos
 import { Person, Security, Badge, ChevronRight, ArrowBack } from "@material-symbols-svg/react";
@@ -33,11 +34,11 @@ export default function CadastroPorPassos() {
   // Navegação entre os passos com validação básica preventiva
   const nextStep = () => {
     if (step === 1 && (!nome || !email)) {
-      alert("Por favor, preencha seu nome e email.");
+      toast.error("Por favor, preencha seu nome e email.");
       return;
     }
     if (step === 2 && (!senha || senha !== confirmarSenha)) {
-      alert("As senhas não coincidem ou estão em branco.");
+      toast.error("As senhas não coincidem ou estão em branco.");
       return;
     }
     setStep((prev) => prev + 1);
@@ -48,7 +49,7 @@ export default function CadastroPorPassos() {
   // 2. Envio definitivo dos dados para o backend
   const handleFinalSubmit = async () => {
     if (!cpf || !telefone) {
-      alert("Por favor, preencha o CPF e o Telefone.");
+      toast.error("Por favor, preencha o CPF e o Telefone.");
       return;
     }
 
@@ -71,12 +72,12 @@ export default function CadastroPorPassos() {
       // Faz o POST direto no endpoint de registro mapeado nas suas urls.py
       await api.post("/api/register/", payload);
       
-      alert("Cadastro realizado com sucesso! Redirecionando para o login...");
+      toast.success("Cadastro realizado com sucesso! Redirecionando para o login...");
       router.push("/login");
     } catch (error: any) {
       console.error("Erro no cadastro:", error.response?.data || error.message);
       // Exibe detalhes específicos de validação vindos do Django (ex: CPF inválido)
-      alert(JSON.stringify(error.response?.data) || "Erro ao realizar o cadastro.");
+      toast.error(JSON.stringify(error.response?.data) || "Erro ao realizar o cadastro.");
     } finally {
       setLoading(false);
     }

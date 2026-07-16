@@ -10,6 +10,6 @@ export interface RatingPayload {
 
 export const RatingService = {
   create: async (payload: RatingPayload) => {
-    return await api.post('/api/ratings/', payload);
+    return await api.post('/api/ride/ratings/', payload);
   }
 };

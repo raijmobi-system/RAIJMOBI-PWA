@@ -4,6 +4,7 @@ import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 export interface MessageData {
   message: string;
   usuario_id: string;
+  usuario_nome: string;
   is_me: boolean;
   data_envio: string;
 }
@@ -12,7 +13,7 @@ export type MessageCallback = (data: MessageData) => void;
 
 class ChatSocketService {
   private socket: WebSocket | null = null;
-  private wsUrlBase = process.env.NEXT_PUBLIC_WS_URL || "ws://34.10.220.97:8000/api/chat";
+  private wsUrlBase = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/api/chat";
 
   // 🌟 1. Transformamos o connect em async
   // Substitua o método connect dentro de services/chat_socket.ts por este:
@@ -22,7 +23,7 @@ class ChatSocketService {
     }
 
     // 1. Corrigindo o endpoint base para apontar exatamente para o ws/chat do Django Channels
-   const cleanWsUrl = "ws://34.10.220.97:8000/ws/chat";
+   const cleanWsUrl = "ws://localhost:8000/ws/chat";
 
     let token = null;
     try {

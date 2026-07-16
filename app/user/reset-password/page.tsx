@@ -9,6 +9,7 @@ import { Text } from "@/components/atoms/typography";
 import { Button } from "@/components/atoms/action";
 import { FormField } from "@/components/molecules/FormFIeld";
 import { api } from "@/services/InterceptRequisition";
+import { toast } from "@/lib/toast";
 
 import { Key, CheckCircle } from "@material-symbols-svg/react";
 
@@ -24,17 +25,17 @@ function ResetPasswordContent() {
 
   const handleResetSubmit = async () => {
     if (!novaSenha || !confirmarSenha) {
-      alert("Por favor, preencha os dois campos.");
+      toast.error("Por favor, preencha os dois campos.");
       return;
     }
 
     if (novaSenha !== confirmarSenha) {
-      alert("As senhas não coincidem. Tente novamente.");
+      toast.error("As senhas não coincidem. Tente novamente.");
       return;
     }
 
     if (!token) {
-      alert("Token de recuperação inválido ou ausente.");
+      toast.error("Token de recuperação inválido ou ausente.");
       return;
     }
 
@@ -44,13 +45,13 @@ function ResetPasswordContent() {
       await api.post(`/api/reset-password?token=${token}`, {
         nova_senha: novaSenha
       });
-      
-      alert("Senha alterada com sucesso! Faça login com a nova senha.");
+
+      toast.success("Senha alterada com sucesso! Faça login com a nova senha.");
       router.replace("/login");
     } catch (error: any) {
       console.error("Erro ao redefinir senha:", error);
-      alert(
-        error.response?.data?.error || 
+      toast.error(
+        error.response?.data?.error ||
         "Erro ao salvar a nova senha. O link pode ter expirado."
       );
     } finally {

@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation';
 
 import { RideService } from '@/services/ride/rideService';
 import { Ride } from '@/types/apiType';
+import { toast } from '@/lib/toast';
 
 type ModalType = 'none' | 'filter' | 'ride_details';
 
@@ -72,7 +73,7 @@ export default function Dashboard() {
       setSearchResults(response.data.results);
     } catch (error) {
       console.error("Erro ao buscar caronas com filtro IA:", error);
-      alert("Não foi possível processar sua pesquisa. Tente novamente.");
+      toast.error("Não foi possível processar sua pesquisa. Tente novamente.");
     } finally {
       setLoadingSearch(false);
     }
@@ -90,7 +91,7 @@ export default function Dashboard() {
       setSearchResults(response.data.results);
     } catch (error) {
       console.error("Erro ao aplicar filtros tradicionais:", error);
-      alert("Erro ao aplicar os filtros de busca.");
+      toast.error("Erro ao aplicar os filtros de busca.");
     } finally {
       setLoadingSearch(false);
     }
@@ -245,7 +246,7 @@ export default function Dashboard() {
               extraContent={<VerifiedUser/>}
             />
 
-            <Button width='full' onClick={() => alert("Chamar fluxo de Pagamento/Reserva")}>
+            <Button width='full' onClick={() => toast.info("Chamar fluxo de Pagamento/Reserva")}>
               <Text color='white' weight='bold'>Participar</Text>
             </Button>
           </Flex>

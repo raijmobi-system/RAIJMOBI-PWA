@@ -11,8 +11,9 @@ import { FormField } from '@/components/molecules';
 import Login from '@/services/user/Login';
 import { useRouter } from 'next/navigation';
 import { SocialLogin } from '@capgo/capacitor-social-login';
+import { toast } from '@/lib/toast';
 
-const GATEWAY_URL = 'http://34.10.220.97:8000';
+const GATEWAY_URL = 'http://localhost:8000';
 
 export default function Runs() {
   interface CredentialsData {
@@ -33,7 +34,7 @@ export default function Runs() {
     if (sucess) {
       router.replace('/dashboard');
     } else {
-      alert('E-mail ou senha incorretos.');
+      toast.error('E-mail ou senha incorretos.');
     }
   };
 
@@ -90,9 +91,9 @@ export default function Runs() {
     } catch (error: any) {
       console.error('Erro no login nativo com Google:', error);
       if (axios.isAxiosError(error)) {
-        alert(`Erro na API: ${JSON.stringify(error.response?.data?.detail || error.response?.data || error.message)}`);
+        toast.error(`Erro na API: ${JSON.stringify(error.response?.data?.detail || error.response?.data || error.message)}`);
       } else {
-        alert('Falha ao realizar login com Google. Tente novamente.');
+        toast.error('Falha ao realizar login com Google. Tente novamente.');
       }
     } finally {
       setLoadingGoogle(false);
